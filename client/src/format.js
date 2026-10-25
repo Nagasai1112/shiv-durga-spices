@@ -1,4 +1,4 @@
-export const PACKS = [250, 500, 750, 1000];
+export const PACKS = [100, 250, 500, 1000];
 
 export function packLabel(grams) {
   return grams === 1000 ? "1 kg" : `${grams} g`;

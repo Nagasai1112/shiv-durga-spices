@@ -40,9 +40,18 @@ db.exec(`
     token TEXT PRIMARY KEY,
     created_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS reviews (
+    id TEXT PRIMARY KEY,
+    quote TEXT NOT NULL,
+    label TEXT NOT NULL DEFAULT '',
+    stars INTEGER NOT NULL DEFAULT 5,
+    image TEXT,
+    sort_order INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+  );
 `);
 
-export const PACKS = [250, 500, 750, 1000];
+export const PACKS = [100, 250, 500, 1000];
 
 export function packLabel(grams) {
   return grams === 1000 ? "1 kg" : `${grams} g`;
@@ -125,6 +134,33 @@ setting("tagline", "Taste and trust, straight from Kerala");
 
 if (!db.prepare("SELECT id FROM admin WHERE id = 1").get()) {
   setPassword(process.env.ADMIN_PASSWORD || "shivdurga");
+}
+
+const reviewSeeds = [
+  ["happy", "The product is really, really good.", "/reviews/happy.jpg"],
+  ["cardamom", "The cardamom is really good this time.", "/reviews/cardamom.jpg"],
+  ["arrived", "It arrived yesterday. There is no damage, and it is good.", "/reviews/arrived.jpg"],
+  ["aroma", "Super aroma, and it is tasty.", "/reviews/aroma.jpg"],
+  ["parcel", "Spices received. The aroma is really good.", "/reviews/parcel.jpg"],
+  ["orders", "The aroma is really good, and we are ready to order more.", "/reviews/orders.jpg"],
+];
+
+if (db.prepare("SELECT COUNT(*) AS n FROM reviews").get().n === 0) {
+  const insertReview = db.prepare(
+    "INSERT INTO reviews (id, quote, label, stars, image, sort_order, created_at) VALUES (?, ?, ?, 5, ?, ?, ?)",
+  );
+  const now = new Date().toISOString();
+  reviewSeeds.forEach((row, index) => insertReview.run(row[0], row[1], "Verified customer", row[2], index + 1, now));
+}
+
+export function toReview(row) {
+  return {
+    id: row.id,
+    quote: row.quote,
+    label: row.label,
+    stars: row.stars,
+    image: row.image,
+  };
 }
 
 export function getSettings() {

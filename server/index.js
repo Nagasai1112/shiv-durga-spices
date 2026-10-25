@@ -10,6 +10,7 @@ import {
   db,
   uploadsDir,
   toProduct,
+  toReview,
   verifyPassword,
   setPassword,
   getSettings,
@@ -161,6 +162,11 @@ app.get("/api/products", (req, res) => {
   res.json(rows.map(toProduct));
 });
 
+app.get("/api/reviews", (req, res) => {
+  const rows = db.prepare("SELECT * FROM reviews ORDER BY sort_order, created_at").all();
+  res.json(rows.map(toReview));
+});
+
 app.get("/api/products/:id", (req, res) => {
   const row = db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id);
   if (!row) {
@@ -290,6 +296,95 @@ app.post("/api/admin/products/:id/image", requireAdmin, (req, res) => {
     );
     res.json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
   });
+});
+
+function readReview(body) {
+  const quote = String(body.quote || "").trim();
+  const label = String(body.label || "").trim() || "Verified customer";
+  const stars = Number(body.stars);
+  if (quote.length < 2 || quote.length > 280) return { error: "Enter the customer's words." };
+  if (label.length > 40) return { error: "Keep the label under 40 characters." };
+  if (!Number.isInteger(stars) || stars < 1 || stars > 5) return { error: "Choose from 1 to 5 stars." };
+  return { value: { quote, label, stars } };
+}
+
+function uniqueReviewId() {
+  let id = `review-${Date.now().toString(36)}`;
+  let n = 2;
+  while (db.prepare("SELECT id FROM reviews WHERE id = ?").get(id)) {
+    id = `review-${Date.now().toString(36)}-${n}`;
+    n += 1;
+  }
+  return id;
+}
+
+app.post("/api/admin/reviews", requireAdmin, (req, res) => {
+  const parsed = readReview(req.body);
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+  const id = uniqueReviewId();
+  const sort = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM reviews").get().n || 0) + 1;
+  db.prepare(
+    "INSERT INTO reviews (id, quote, label, stars, image, sort_order, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?)",
+  ).run(id, parsed.value.quote, parsed.value.label, parsed.value.stars, sort, new Date().toISOString());
+  res.status(201).json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(id)));
+});
+
+app.put("/api/admin/reviews/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id);
+  if (!current) {
+    res.status(404).json({ error: "That review is not on the site." });
+    return;
+  }
+  const parsed = readReview(req.body);
+  if (parsed.error) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+  db.prepare("UPDATE reviews SET quote = ?, label = ?, stars = ? WHERE id = ?").run(
+    parsed.value.quote,
+    parsed.value.label,
+    parsed.value.stars,
+    req.params.id,
+  );
+  res.json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
+});
+
+app.post("/api/admin/reviews/:id/image", requireAdmin, (req, res) => {
+  upload.single("image")(req, res, (error) => {
+    if (error) {
+      const message = error.code === "LIMIT_FILE_SIZE" ? "Use an image under 5 MB" : error.message;
+      res.status(400).json({ error: message || "Could not save that image" });
+      return;
+    }
+    if (!req.file) {
+      res.status(400).json({ error: "Choose an image first" });
+      return;
+    }
+    const current = db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id);
+    if (!current) {
+      fs.unlinkSync(req.file.path);
+      res.status(404).json({ error: "That review is not on the site." });
+      return;
+    }
+    if (current.image && current.image.startsWith("/uploads/")) removeImage(current.image);
+    const image = `/uploads/${req.file.filename}`;
+    db.prepare("UPDATE reviews SET image = ? WHERE id = ?").run(image, req.params.id);
+    res.json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
+  });
+});
+
+app.delete("/api/admin/reviews/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id);
+  if (!current) {
+    res.status(404).json({ error: "That review is not on the site." });
+    return;
+  }
+  if (current.image && current.image.startsWith("/uploads/")) removeImage(current.image);
+  db.prepare("DELETE FROM reviews WHERE id = ?").run(req.params.id);
+  res.json({ ok: true });
 });
 
 app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {

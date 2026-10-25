@@ -10,7 +10,7 @@ export function SpicePage() {
   const { products, settings, status } = useCatalog();
   const { add } = useCart();
   const product = products.find((item) => item.id === id);
-  const [grams, setGrams] = useState(250);
+  const [grams, setGrams] = useState(100);
   const [qty, setQty] = useState(1);
 
   useEffect(() => {
@@ -41,18 +41,19 @@ export function SpicePage() {
         <h1 className="mt-2 font-serif text-5xl">{product.name}</h1>
         <p className="mt-4 max-w-lg text-lg text-ink/75">{product.description}</p>
         <p className="mt-4 text-sm text-ink/70">Today’s auction rate {rupees(product.ratePerKg)} per kg</p>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <p className="mt-4 font-serif text-5xl">{rupees(pack.price)}</p>
+        <div className="mt-4 grid grid-cols-4 gap-2">
           {product.packs.map((item) => {
             const selected = item.grams === pack.grams;
             return (
               <button
                 key={item.grams}
                 type="button"
+                aria-pressed={selected}
                 onClick={() => setGrams(item.grams)}
-                className={`rounded-2xl border px-3 py-3 text-left ${selected ? "border-saffron bg-saffron/10" : "border-line bg-card"}`}
+                className={`rounded-xl px-2 py-3 text-center text-sm ${selected ? "bg-ink text-cream" : "border border-line bg-card text-ink"}`}
               >
-                <span className="block text-sm text-ink/70">{item.label}</span>
-                <span className="mt-1 block font-serif text-2xl">{rupees(item.price)}</span>
+                {item.label}
               </button>
             );
           })}

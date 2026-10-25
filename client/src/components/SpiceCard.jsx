@@ -22,18 +22,19 @@ export function SpiceCard({ product }) {
         <Link to={`/spice/${product.id}`} className="mt-1 font-serif text-2xl text-ink">
           {product.name}
         </Link>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <p className="mt-3 font-serif text-3xl text-ink">{rupees(pack.price)}</p>
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
           {product.packs.map((item) => {
             const selected = item.grams === pack.grams;
             return (
               <button
                 key={item.grams}
                 type="button"
+                aria-pressed={selected}
                 onClick={() => setGrams(item.grams)}
-                className={`rounded-2xl border px-2 py-2 text-left ${selected ? "border-saffron bg-saffron/10" : "border-line bg-cream"}`}
+                className={`rounded-xl px-1 py-2 text-center text-[11px] leading-tight sm:text-xs ${selected ? "bg-ink text-cream" : "border border-line bg-cream text-ink"}`}
               >
-                <span className="block text-xs text-ink/70">{item.label}</span>
-                <span className="block text-sm font-semibold">{rupees(item.price)}</span>
+                {item.label}
               </button>
             );
           })}

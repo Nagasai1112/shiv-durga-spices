@@ -65,7 +65,7 @@ export function Admin() {
           <p className="text-xs tracking-[0.18em] text-saffron uppercase">Shop admin</p>
           <h1 className="mt-2 font-serif text-5xl">Rates and photos</h1>
           <p className="mt-2 max-w-xl text-ink/75">
-            Change one number, the auction rate per kg. The shop recalculates 250 g, 500 g, 750 g, and 1 kg for every visitor.
+            Change one number, the auction rate per kg. The shop recalculates 100 g, 250 g, 500 g, and 1 kg for every visitor.
           </p>
         </div>
         <button type="button" onClick={logout} className="rounded-full border border-line bg-card px-4 py-2 text-sm">
@@ -79,6 +79,7 @@ export function Admin() {
         ))}
       </div>
       <AddProduct onSaved={reload} />
+      <ReviewsManager />
       <PasswordForm />
     </main>
   );
@@ -305,6 +306,178 @@ function AddProduct({ onSaved }) {
       <button type="submit" className="mt-4 rounded-full bg-saffron px-4 py-2 text-sm font-medium text-white">
         Add spice
       </button>
+    </form>
+  );
+}
+
+function ReviewsManager() {
+  const [reviews, setReviews] = useState([]);
+  const [quote, setQuote] = useState("");
+  const [label, setLabel] = useState("Verified customer");
+  const [stars, setStars] = useState(5);
+  const [error, setError] = useState("");
+
+  function load() {
+    api("/api/reviews")
+      .then(setReviews)
+      .catch((err) => setError(err.message));
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function create(event) {
+    event.preventDefault();
+    setError("");
+    try {
+      await api("/api/admin/reviews", {
+        method: "POST",
+        body: JSON.stringify({ quote, label, stars: Number(stars) }),
+      });
+      setQuote("");
+      setLabel("Verified customer");
+      setStars(5);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <section className="mt-8">
+      <h2 className="font-serif text-3xl">Customer reviews</h2>
+      <p className="mt-2 max-w-xl text-sm text-ink/75">These appear in the home-page carousel. Add the customer’s words, a WhatsApp screenshot, and the stars.</p>
+      <div className="mt-4 space-y-4">
+        {reviews.map((review) => (
+          <ReviewEditor key={review.id} review={review} onChange={load} />
+        ))}
+      </div>
+      <form onSubmit={create} className="mt-4 rounded-[2rem] border border-dashed border-saffron/50 bg-card p-5">
+        <h3 className="font-serif text-2xl">Add a review</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="text-sm md:col-span-2">
+            Customer’s words
+            <textarea value={quote} onChange={(event) => setQuote(event.target.value)} rows="2" className={field} />
+          </label>
+          <label className="text-sm">
+            Label
+            <input value={label} onChange={(event) => setLabel(event.target.value)} className={field} />
+          </label>
+          <label className="text-sm">
+            Stars
+            <select value={stars} onChange={(event) => setStars(Number(event.target.value))} className={field}>
+              {[5, 4, 3, 2, 1].map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {error && <p className="mt-3 text-sm text-maroon">{error}</p>}
+        <button type="submit" className="mt-4 rounded-full bg-saffron px-4 py-2 text-sm font-medium text-white">
+          Add review
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function ReviewEditor({ review, onChange }) {
+  const [quote, setQuote] = useState(review.quote);
+  const [label, setLabel] = useState(review.label);
+  const [stars, setStars] = useState(review.stars);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function save(event) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    try {
+      await api(`/api/admin/reviews/${review.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ quote, label, stars: Number(stars) }),
+      });
+      setMessage("Saved.");
+      onChange();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function upload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setError("");
+    try {
+      const body = new FormData();
+      body.append("image", file);
+      await api(`/api/admin/reviews/${review.id}/image`, { method: "POST", body });
+      setMessage("Screenshot updated.");
+      onChange();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm("Remove this review from the home page?")) return;
+    try {
+      await api(`/api/admin/reviews/${review.id}`, { method: "DELETE" });
+      onChange();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="rounded-[2rem] border border-line bg-card p-5">
+      <div className="grid gap-4 md:grid-cols-[140px_1fr]">
+        {review.image ? (
+          <img src={review.image} alt="" className="h-40 w-full rounded-2xl object-cover object-top" />
+        ) : (
+          <div className="grid h-40 place-items-center rounded-2xl bg-cream text-sm text-ink/60">No screenshot</div>
+        )}
+        <div>
+          <label className="block text-sm">
+            Customer’s words
+            <textarea value={quote} onChange={(event) => setQuote(event.target.value)} rows="2" className={field} />
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm">
+              Label
+              <input value={label} onChange={(event) => setLabel(event.target.value)} className={field} />
+            </label>
+            <label className="text-sm">
+              Stars
+              <select value={stars} onChange={(event) => setStars(Number(event.target.value))} className={field}>
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="mt-3 block text-sm">
+            WhatsApp screenshot
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} className="mt-1 block text-sm" />
+          </label>
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-maroon">{error}</p>}
+      {message && <p className="mt-3 text-sm text-leaf">{message}</p>}
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-cream">
+          Save review
+        </button>
+        <button type="button" onClick={remove} className="text-sm text-maroon">
+          Remove review
+        </button>
+      </div>
     </form>
   );
 }
