@@ -1,0 +1,22 @@
+{
+  "name": "shiv-durga-spices",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,web -c green,yellow \"node --disable-warning=ExperimentalWarning --watch server/index.js\" \"npm run dev --prefix client\"",
+    "server": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "node --disable-warning=ExperimentalWarning server/index.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
