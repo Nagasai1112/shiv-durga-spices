@@ -6,6 +6,7 @@ import { PurityMarquee, UnboxingMarquee } from "../components/HomeMarquee";
 import { StoryLink, scrollToStory } from "../components/SiteLinks";
 import { ReviewCarousel } from "../components/ReviewCarousel";
 import { SpiceCard } from "../components/SpiceCard";
+import { HeroSkeleton, SpiceGridSkeleton } from "../components/Skeleton";
 
 export function Home() {
   const { products, settings, status } = useCatalog();
@@ -44,10 +45,19 @@ export function Home() {
             </StoryLink>
           </div>
         </div>
-        <HomeCarousel products={products} />
+        {status === "loading" ? <HeroSkeleton /> : <HomeCarousel products={products} />}
       </section>
 
       <PurityMarquee />
+
+      {status === "loading" && (
+        <section className="mx-auto max-w-6xl px-5 pt-14">
+          <h2 className="text-center font-serif text-4xl">Our Best Sellers</h2>
+          <div className="mt-8">
+            <SpiceGridSkeleton count={2} className="grid gap-5 sm:grid-cols-2" />
+          </div>
+        </section>
+      )}
 
       {bestSellers.length > 0 && (
         <section className="mx-auto max-w-6xl px-5 pt-14">
@@ -75,13 +85,15 @@ export function Home() {
             See the whole shop
           </Link>
         </div>
-        {status === "loading" && <p className="text-ink/70">Opening the shop…</p>}
+        {status === "loading" && <SpiceGridSkeleton count={3} />}
         {status === "error" && <p className="text-maroon">The shop server is not running. From the project folder, run npm run dev.</p>}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((product) => (
-            <SpiceCard key={product.id} product={product} />
-          ))}
-        </div>
+        {status !== "loading" && (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((product) => (
+              <SpiceCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mx-auto mt-16 grid max-w-6xl gap-4 px-5 md:grid-cols-3">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useCatalog } from "../catalog";
 import { BRAND } from "../format";
+import { ReviewCardSkeleton } from "../components/Skeleton";
 
 function Stars({ value }) {
   const stars = Math.max(0, Math.min(5, Number(value) || 0));
@@ -45,7 +46,14 @@ export function Reviews() {
         The newest review is at the top. These are words and WhatsApp chats from people who ordered.
       </p>
       {error && <p className="mt-4 text-sm text-maroon">{error}</p>}
-      {status === "loading" && <p className="mt-6 text-sm text-ink/75">Opening the reviews…</p>}
+      {status === "loading" && (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-busy="true">
+          <p className="sr-only">Opening the reviews…</p>
+          {Array.from({ length: 6 }, (_, index) => (
+            <ReviewCardSkeleton key={index} />
+          ))}
+        </div>
+      )}
       {status === "ready" && ordered.length === 0 && (
         <p className="mt-6 text-sm text-ink/75">Reviews from customers will appear here.</p>
       )}

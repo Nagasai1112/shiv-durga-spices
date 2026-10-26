@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
+import { ReviewCarouselSkeleton } from "./Skeleton";
 
 function usePerView() {
   const [count, setCount] = useState(1);
@@ -30,6 +31,7 @@ function Stars({ value }) {
 
 export function ReviewCarousel() {
   const [reviews, setReviews] = useState([]);
+  const [status, setStatus] = useState("loading");
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const perView = usePerView();
@@ -37,8 +39,14 @@ export function ReviewCarousel() {
 
   useEffect(() => {
     api("/api/reviews")
-      .then((rows) => setReviews(rows.filter((review) => review.image)))
-      .catch(() => setReviews([]));
+      .then((rows) => {
+        setReviews(rows.filter((review) => review.image));
+        setStatus("ready");
+      })
+      .catch(() => {
+        setReviews([]);
+        setStatus("error");
+      });
   }, []);
 
   useEffect(() => {
@@ -54,6 +62,7 @@ export function ReviewCarousel() {
     return () => window.clearInterval(timer);
   }, [maxIndex, paused]);
 
+  if (status === "loading") return <ReviewCarouselSkeleton />;
   if (reviews.length === 0) return null;
 
   function go(next) {

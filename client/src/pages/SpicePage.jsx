@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCart } from "../cart";
 import { useCatalog } from "../catalog";
+import { SpicePageSkeleton } from "../components/Skeleton";
 import { SpiceVisual } from "../components/SpiceVisual";
 import { BRAND, rupees } from "../format";
 
@@ -17,7 +18,7 @@ export function SpicePage() {
     document.title = product ? `${product.name} · ${settings?.brandName || BRAND}` : "Spice";
   }, [product, settings]);
 
-  if (status === "loading") return <main className="mx-auto max-w-6xl px-5 py-16">Opening the shop…</main>;
+  if (status === "loading") return <SpicePageSkeleton />;
   if (!product) {
     return (
       <main className="mx-auto max-w-6xl px-5 py-16">

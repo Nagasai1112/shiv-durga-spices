@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useCatalog } from "../catalog";
 import { SpiceCard } from "../components/SpiceCard";
+import { SpiceGridSkeleton } from "../components/Skeleton";
 import { BRAND, deliveryLine } from "../format";
 
 export function Shop() {
@@ -55,7 +56,11 @@ export function Shop() {
           </button>
         ))}
       </div>
-      {status === "loading" && <p className="mt-8 text-ink/70">Opening the shop…</p>}
+      {status === "loading" && (
+        <div className="mt-8">
+          <SpiceGridSkeleton count={6} />
+        </div>
+      )}
       {status === "error" && <p className="mt-8 text-maroon">The shop server is not running.</p>}
       {status === "ready" && visible.length === 0 && (
         <p className="mt-8 text-ink/70">{needle ? "No spice matches that search." : "Nothing in that group yet."}</p>
