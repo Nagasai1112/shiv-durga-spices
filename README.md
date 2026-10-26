@@ -103,16 +103,16 @@ The first time the server runs, and when an older database still has the previou
 
 | Spice | Description |
 | --- | --- |
-| Cardamom | A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking. |
+| Green Cardamom | A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking. |
 | Clove | A warm and aromatic spice with a strong, slightly sweet flavour, widely used in cooking and beverages. |
-| Cinnamon Stick | A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks. |
+| Cinnamon Roll | A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks. |
 | Black Pepper | A classic spice with a sharp, pungent flavour that enhances the taste of a wide variety of dishes. |
 | Star Anise | A star-shaped spice with a sweet, licorice-like aroma, often used in biryanis, curries, and beverages. |
 | Mace | The delicate, aromatic outer covering of nutmeg, known for its warm and slightly sweet flavour. |
 | Nutmeg | A warm, fragrant spice with a slightly sweet and nutty flavour, perfect for sweets, curries, and beverages. |
 | Bay Leaf | An aromatic leaf that adds a subtle, earthy fragrance and flavour to rice dishes, curries, and gravies. |
 
-Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Their photos ship with the site in `client/public/spices`. A photo uploaded later from admin replaces the starter photo for that spice.
+Green Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Their photos ship with the site in `client/public/spices`. A photo uploaded later from admin replaces the starter photo for that spice.
 
 The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Keralam**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
 

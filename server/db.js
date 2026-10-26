@@ -144,9 +144,9 @@ function setting(key, fallback) {
 }
 
 const defaults = [
-  ["cardamom", "Cardamom", "A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking.", 3600, 1],
+  ["cardamom", "Green Cardamom", "A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking.", 3600, 1],
   ["clove", "Clove", "A warm and aromatic spice with a strong, slightly sweet flavour, widely used in cooking and beverages.", 880, 1],
-  ["cinnamon-stick", "Cinnamon Stick", "A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks.", 480, 0],
+  ["cinnamon-stick", "Cinnamon Roll", "A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks.", 480, 0],
   ["black-pepper", "Black Pepper", "A classic spice with a sharp, pungent flavour that enhances the taste of a wide variety of dishes.", 980, 0],
   ["star-anise", "Star Anise", "A star-shaped spice with a sweet, licorice-like aroma, often used in biryanis, curries, and beverages.", 360, 0],
   ["mace", "Mace", "The delicate, aromatic outer covering of nutmeg, known for its warm and slightly sweet flavour.", 1200, 0],
@@ -237,6 +237,10 @@ if (catalogVersion !== "2" && (productCount === 0 || obsoleteCount > 0)) {
 } else if (catalogVersion !== "2") {
   db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
 }
+
+const renameStarter = db.prepare("UPDATE products SET name = ? WHERE id = ? AND name = ?");
+renameStarter.run("Green Cardamom", "cardamom", "Cardamom");
+renameStarter.run("Cinnamon Roll", "cinnamon-stick", "Cinnamon Stick");
 
 const useBundledPhoto = db.prepare("UPDATE products SET image = ? WHERE id = ?");
 for (const [id, image] of Object.entries(bundledPhotos)) {
