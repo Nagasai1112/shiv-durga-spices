@@ -25,6 +25,7 @@ export function SpiceCard({ product, badge }) {
         <Link to={`/spice/${product.id}`} className="mt-1 font-serif text-2xl text-ink">
           {product.name}
         </Link>
+        {product.description && <p className="mt-2 text-sm leading-5 text-ink/70">{product.description}</p>}
         <p className="mt-3 font-serif text-3xl text-ink">{rupees(pack.price)}</p>
         <div className="mt-3 grid grid-cols-4 gap-1.5">
           {product.packs.map((item) => {

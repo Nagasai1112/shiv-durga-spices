@@ -1,8 +1,8 @@
-import { useEffect } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../cart";
 import { useCatalog } from "../catalog";
-import { rupees } from "../format";
+import { BRAND, deliveryFor, orderGrams, rupees } from "../format";
 import { CrossButton } from "./CrossButton";
 import { HomeLink, StoryLink } from "./SiteLinks";
 
@@ -15,18 +15,60 @@ const links = [
 export function Header() {
   const { settings } = useCatalog();
   const { items, count, total, open, setOpen, setQty, remove } = useCart();
-  const brand = settings?.brandName || "Shiv Durga Spices";
-  const deliveryCharge = items.length ? Number(settings?.deliveryCharge) || 0 : 0;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const brand = settings?.brandName || BRAND;
+  const deliveryCharge = deliveryFor(orderGrams(items), settings);
   const grandTotal = total + deliveryCharge;
+  const cartInHistory = Boolean(location.state?.cart);
+  const skipHistory = useRef(false);
+  const wasOpen = useRef(open);
+
+  function closeCart() {
+    setOpen(false);
+  }
+
+  function leaveCart(event, to, state) {
+    event.preventDefault();
+    skipHistory.current = true;
+    setOpen(false);
+    navigate(to, { replace: cartInHistory, state });
+  }
+
+  useEffect(() => {
+    function onPop() {
+      skipHistory.current = true;
+      setOpen(false);
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [setOpen]);
+
+  useEffect(() => {
+    if (skipHistory.current) {
+      skipHistory.current = false;
+      wasOpen.current = open;
+      return;
+    }
+    if (open && !wasOpen.current && !cartInHistory) {
+      navigate(
+        { pathname: location.pathname, search: location.search, hash: location.hash },
+        { state: { ...(location.state || {}), cart: true } },
+      );
+    } else if (!open && wasOpen.current && cartInHistory) {
+      navigate(-1);
+    }
+    wasOpen.current = open;
+  }, [open, cartInHistory, location.pathname, location.search, location.hash, location.state, navigate]);
 
   useEffect(() => {
     if (!open) return undefined;
     function onKey(event) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeCart();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, setOpen]);
+  }, [open]);
 
   return (
     <>
@@ -58,6 +100,21 @@ export function Header() {
               ),
             )}
           </nav>
+          <button
+            type="button"
+            onClick={() => {
+              if (location.pathname === "/shop" && !cartInHistory) {
+                document.getElementById("spice-search")?.focus();
+                return;
+              }
+              skipHistory.current = true;
+              setOpen(false);
+              navigate("/shop", { replace: cartInHistory, state: { focusSearch: true } });
+            }}
+            className="inline-flex shrink-0 items-center rounded-full border border-line bg-card px-4 py-2 text-sm font-medium"
+          >
+            Search
+          </button>
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -94,11 +151,11 @@ export function Header() {
 
       {open && (
         <div className="fixed inset-0 z-40">
-          <button type="button" className="absolute inset-0 bg-ink/40" aria-label="Close order" onClick={() => setOpen(false)} />
+          <button type="button" className="absolute inset-0 bg-ink/40" aria-label="Close order" onClick={closeCart} />
           <aside className="absolute top-0 right-0 flex h-full w-full max-w-md flex-col bg-cream shadow-2xl">
             <div className="flex items-center justify-between border-b border-line px-5 py-4">
               <h2 className="font-serif text-2xl">Your order</h2>
-              <CrossButton label="Close" onClick={() => setOpen(false)} />
+              <CrossButton label="Close" onClick={closeCart} />
             </div>
             <div className="flex-1 space-y-4 overflow-auto px-5 py-4">
               {items.length === 0 && <p className="text-ink/70">The order is empty. Add a spice and a pack size.</p>}
@@ -144,10 +201,17 @@ export function Header() {
               )}
               <Link
                 to="/order"
-                onClick={() => setOpen(false)}
+                onClick={(event) => leaveCart(event, "/order")}
                 className={`block rounded-full px-4 py-3 text-center text-sm font-medium text-white ${items.length ? "bg-leaf" : "pointer-events-none bg-leaf/40"}`}
               >
                 Review and send on WhatsApp
+              </Link>
+              <Link
+                to="/shop"
+                onClick={(event) => leaveCart(event, "/shop")}
+                className="mt-3 block rounded-full border border-line px-4 py-3 text-center text-sm font-medium"
+              >
+                Shop more
               </Link>
             </div>
           </aside>

@@ -21,7 +21,7 @@ export function Footer() {
         <HomeLink className="justify-self-center md:justify-self-start">
           <img
             src="/logo.jpg"
-            alt="Shiv Durga Spices"
+            alt="Shivdurga Kerala Spices"
             className="h-40 w-40 rounded-full object-cover shadow-[0_8px_24px_rgba(0,0,0,0.25)] sm:h-48 sm:w-48"
           />
         </HomeLink>
@@ -33,9 +33,13 @@ export function Footer() {
               <dt className="inline">Trade name: </dt>
               <dd className="inline">
                 <HomeLink className="underline decoration-cream/30 underline-offset-4 hover:decoration-cream">
-                  Shiv Durga Spices
+                  Shivdurga Kerala Spices
                 </HomeLink>
               </dd>
+            </div>
+            <div>
+              <dt className="inline">Address: </dt>
+              <dd className="inline">Thiruvananthapuram, Kerala</dd>
             </div>
             <div>
               <dt className="inline">Phone number: </dt>
@@ -78,7 +82,7 @@ export function Footer() {
         <div className="mx-auto max-w-6xl px-5 py-4 text-xs text-cream/70">
           <p>
             © {new Date().getFullYear()}{" "}
-            <HomeLink className="cursor-pointer hover:text-cream">Shiv Durga Spices</HomeLink>. All rights reserved.
+            <HomeLink className="cursor-pointer hover:text-cream">Shivdurga Kerala Spices</HomeLink>. All rights reserved.
           </p>
         </div>
       </div>

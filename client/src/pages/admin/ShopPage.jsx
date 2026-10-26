@@ -14,7 +14,7 @@ export function ShopPage() {
     <section>
       <h1 className="font-serif text-5xl">Shop details</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        These details appear on the site. The delivery charge is added to every order, and the phone and email appear in the footer.
+        These details appear on the site. Delivery is one charge for the whole order: the same amount up to the weight you set, then the other amount above that. The phone and email appear in the footer.
       </p>
       {settings ? <SettingsForm settings={settings} onSaved={reload} /> : <p className="mt-6 text-sm text-ink/70">Loading shop details…</p>}
     </section>
@@ -77,11 +77,29 @@ function SettingsForm({ settings, onSaved }) {
           />
         </label>
         <label className="text-sm">
-          Delivery charge (₹)
+          Charge changes above (kg)
+          <input
+            inputMode="decimal"
+            value={form.deliveryLimitKg ?? 5}
+            onChange={(event) => set("deliveryLimitKg", event.target.value)}
+            className={field}
+          />
+        </label>
+        <label className="text-sm">
+          Charge up to that weight (₹)
           <input
             inputMode="numeric"
-            value={form.deliveryCharge ?? 0}
-            onChange={(event) => set("deliveryCharge", event.target.value)}
+            value={form.deliveryPerKgUpTo ?? 90}
+            onChange={(event) => set("deliveryPerKgUpTo", event.target.value)}
+            className={field}
+          />
+        </label>
+        <label className="text-sm">
+          Charge above that weight (₹)
+          <input
+            inputMode="numeric"
+            value={form.deliveryPerKgAbove ?? 60}
+            onChange={(event) => set("deliveryPerKgAbove", event.target.value)}
             className={field}
           />
         </label>

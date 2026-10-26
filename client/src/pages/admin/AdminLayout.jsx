@@ -16,7 +16,7 @@ export function AdminLayout() {
   const [authed, setAuthed] = useState(null);
 
   useEffect(() => {
-    document.title = "Admin · Shiv Durga Spices";
+    document.title = "Admin · Shivdurga Kerala Spices";
     api("/api/auth/me")
       .then(() => setAuthed(true))
       .catch(() => setAuthed(false));

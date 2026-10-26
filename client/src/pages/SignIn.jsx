@@ -10,7 +10,7 @@ export function SignIn() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    document.title = "Sign in · Shiv Durga Spices";
+    document.title = "Sign in · Shivdurga Kerala Spices";
     api("/api/auth/me")
       .then(() => navigate("/admin", { replace: true }))
       .catch(() => {});

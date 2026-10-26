@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { CrossButton } from "../../components/CrossButton";
 import { field } from "./field";
 
@@ -46,6 +47,7 @@ function ReviewEditor({ review, onChange }) {
   const [stars, setStars] = useState(review.stars);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   async function save(event) {
     event.preventDefault();
@@ -80,7 +82,7 @@ function ReviewEditor({ review, onChange }) {
   }
 
   async function remove() {
-    if (!window.confirm("Remove this review from the home page?")) return;
+    setConfirming(false);
     try {
       await api(`/api/admin/reviews/${review.id}`, { method: "DELETE" });
       onChange();
@@ -130,8 +132,16 @@ function ReviewEditor({ review, onChange }) {
         <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-cream">
           Save review
         </button>
-        <CrossButton label="Remove review" tone="maroon" onClick={remove} />
+        <CrossButton label="Remove review" tone="maroon" onClick={() => setConfirming(true)} />
       </div>
+      <ConfirmModal
+        open={confirming}
+        title="Remove this review?"
+        message="It will leave the home page."
+        confirmLabel="Remove"
+        onConfirm={remove}
+        onCancel={() => setConfirming(false)}
+      />
     </form>
   );
 }

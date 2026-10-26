@@ -5,7 +5,7 @@ import * as Yup from "yup";
 import { useCart } from "../cart";
 import { CrossButton } from "../components/CrossButton";
 import { useCatalog } from "../catalog";
-import { rupees } from "../format";
+import { BRAND, deliveryFor, deliveryLine, orderGrams, rupees } from "../format";
 
 function read(key) {
   return sessionStorage.getItem(key) || "";
@@ -168,7 +168,7 @@ function OrderField({ name, label, optional = false, as = "input", onValue, flag
 export function Order() {
   const { items, total, setQty, remove, clear } = useCart();
   const { settings } = useCatalog();
-  const brand = settings?.brandName || "Shiv Durga Spices";
+  const brand = settings?.brandName || BRAND;
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -208,7 +208,7 @@ export function Order() {
   }
 
   const whatsappNumber = settings?.whatsappNumber || "";
-  const deliveryCharge = Number(settings?.deliveryCharge) || 0;
+  const deliveryCharge = deliveryFor(orderGrams(items), settings);
   const grandTotal = total + deliveryCharge;
 
   if (items.length === 0) {
@@ -228,7 +228,7 @@ export function Order() {
       <section>
         <h1 className="font-serif text-5xl">Review the order</h1>
         <p className="mt-3 text-ink/75">
-          Spice prices are from when you added each pack. Delivery is added on the right. Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. {settings?.paymentNote}
+          Spice prices are from when you added each pack. {deliveryLine(settings)} Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. {settings?.paymentNote}
         </p>
         <div className="mt-6 space-y-3">
           {items.map((item) => (

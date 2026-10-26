@@ -81,6 +81,9 @@ const addedBestSeller = ensureColumn("products", "best_seller", "INTEGER NOT NUL
 if (addedBestSeller) {
   db.prepare("UPDATE products SET best_seller = 1 WHERE lower(name) LIKE '%cardamom%'").run();
 }
+for (const grams of [100, 250, 500, 1000]) {
+  ensureColumn("products", `price_${grams}`, "INTEGER NOT NULL DEFAULT 0");
+}
 
 export const PACKS = [100, 250, 500, 1000];
 
@@ -98,7 +101,6 @@ export function toProduct(row) {
     name: row.name,
     category: row.category,
     description: row.description,
-    ratePerKg: row.rate_per_kg,
     image: row.image,
     inStock: Boolean(row.in_stock),
     bestSeller: Boolean(row.best_seller),
@@ -106,7 +108,7 @@ export function toProduct(row) {
     packs: PACKS.map((grams) => ({
       grams,
       label: packLabel(grams),
-      price: priceFor(row.rate_per_kg, grams),
+      price: row[`price_${grams}`] || priceFor(row.rate_per_kg, grams),
     })),
   };
 }
@@ -151,6 +153,15 @@ const seeds = [
   ["mustard", "Mustard seeds", "Whole", "Small black seeds that crackle as soon as they meet hot oil.", 240],
 ];
 
+db.prepare(
+  `UPDATE products SET
+    price_100 = ROUND(rate_per_kg * 100 / 1000.0),
+    price_250 = ROUND(rate_per_kg * 250 / 1000.0),
+    price_500 = ROUND(rate_per_kg * 500 / 1000.0),
+    price_1000 = rate_per_kg
+  WHERE price_100 = 0 AND price_250 = 0 AND price_500 = 0 AND price_1000 = 0 AND rate_per_kg > 0`,
+).run();
+
 const count = db.prepare("SELECT COUNT(*) AS n FROM products").get().n;
 if (count === 0) {
   const insert = db.prepare(
@@ -160,12 +171,20 @@ if (count === 0) {
   seeds.forEach((row, index) => insert.run(...row, index + 1, now));
 }
 
-setting("brand_name", "Shiv Durga Spices");
+setting("brand_name", "Shivdurga Kerala Spices");
+const storedBrand = db.prepare("SELECT value FROM settings WHERE key = 'brand_name'").get()?.value || "";
+const foldedBrand = storedBrand.toLowerCase().replace(/\s+/g, "");
+if (foldedBrand === "shivdurgaspices" || foldedBrand === "shivdurgakeralaspices") {
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'brand_name'").run("Shivdurga Kerala Spices");
+}
 setting("whatsapp_number", "");
 setting("tagline", "Taste and trust, straight from Kerala");
 setting("phone", "917672091892");
 setting("email", "shivdurgaspices@gmail.com");
 setting("delivery_charge", "0");
+setting("delivery_limit_kg", "5");
+setting("delivery_per_kg_upto", "90");
+setting("delivery_per_kg_above", "60");
 setting("delivery_note", "We deliver to the address you enter.");
 const oldDeliveryNote = "We deliver to the address you enter. The delivery charge below is added to the order.";
 if (db.prepare("SELECT value FROM settings WHERE key = 'delivery_note'").get()?.value === oldDeliveryNote) {
@@ -206,12 +225,14 @@ export function toReview(row) {
 
 export function getSettings() {
   return {
-    brandName: setting("brand_name", "Shiv Durga Spices"),
+    brandName: setting("brand_name", "Shivdurga Kerala Spices"),
     whatsappNumber: setting("whatsapp_number", ""),
     tagline: setting("tagline", "Taste and trust, straight from Kerala"),
     phone: setting("phone", "917672091892"),
     email: setting("email", "shivdurgaspices@gmail.com"),
-    deliveryCharge: Number(setting("delivery_charge", "0")) || 0,
+    deliveryLimitKg: Number(setting("delivery_limit_kg", "5")) || 5,
+    deliveryPerKgUpTo: Number(setting("delivery_per_kg_upto", "90")) || 0,
+    deliveryPerKgAbove: Number(setting("delivery_per_kg_above", "60")) || 0,
     deliveryNote: setting("delivery_note", "We deliver to the address you enter."),
     paymentNote: setting("payment_note", "Pay by UPI or cash. We confirm the payment with you on WhatsApp."),
   };
@@ -226,7 +247,9 @@ export function saveSettings(next) {
   put.run("tagline", next.tagline);
   put.run("phone", next.phone);
   put.run("email", next.email);
-  put.run("delivery_charge", String(next.deliveryCharge));
+  put.run("delivery_limit_kg", String(next.deliveryLimitKg));
+  put.run("delivery_per_kg_upto", String(next.deliveryPerKgUpTo));
+  put.run("delivery_per_kg_above", String(next.deliveryPerKgAbove));
   put.run("delivery_note", next.deliveryNote);
   put.run("payment_note", next.paymentNote);
   return getSettings();

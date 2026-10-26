@@ -108,19 +108,25 @@ function readProduct(body) {
   const name = String(body.name || "").trim();
   const category = String(body.category || "").trim();
   const description = String(body.description || "").trim();
-  const rate = Number(body.ratePerKg);
   if (name.length < 2 || name.length > 80) return { error: "Enter a spice name" };
   if (!category || category.length > 40) return { error: "Enter a category, such as Whole" };
   if (description.length > 500) return { error: "Keep the description under 500 characters" };
-  if (!Number.isFinite(rate)) return { error: "Enter the auction rate per kg in rupees" };
-  const ratePerKg = Math.round(rate);
-  if (ratePerKg < 1 || ratePerKg > 500000) return { error: "Enter a rate between ₹1 and ₹5,00,000 per kg" };
+  const prices = {};
+  const source = body.prices || {};
+  for (const grams of [100, 250, 500, 1000]) {
+    const price = Math.round(Number(source[grams] ?? source[String(grams)]));
+    const label = grams === 1000 ? "1 kg" : `${grams} g`;
+    if (!Number.isFinite(price) || price < 1 || price > 500000) {
+      return { error: `Enter a price from ₹1 to ₹5,00,000 for ${label}` };
+    }
+    prices[grams] = price;
+  }
   return {
     value: {
       name,
       category,
       description,
-      ratePerKg,
+      prices,
       inStock: body.inStock !== false && body.inStock !== 0,
       bestSeller: body.bestSeller === true || body.bestSeller === 1,
     },
@@ -140,15 +146,36 @@ function readSettings(body) {
   if (phone && (phone.length < 10 || phone.length > 15)) return { error: "Enter the phone number with country code" };
   const email = String(body.email || "").trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email" };
-  const deliveryCharge = Math.round(Number(body.deliveryCharge));
-  if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0 || deliveryCharge > 100000) {
-    return { error: "Enter a delivery charge of ₹0 or more" };
+  const deliveryLimitKg = Number(body.deliveryLimitKg);
+  const deliveryPerKgUpTo = Math.round(Number(body.deliveryPerKgUpTo));
+  const deliveryPerKgAbove = Math.round(Number(body.deliveryPerKgAbove));
+  if (!Number.isFinite(deliveryLimitKg) || deliveryLimitKg < 0 || deliveryLimitKg > 100) {
+    return { error: "Enter the weight where the delivery charge changes" };
+  }
+  if (!Number.isFinite(deliveryPerKgUpTo) || deliveryPerKgUpTo < 0 || deliveryPerKgUpTo > 100000) {
+    return { error: "Enter the delivery charge up to that weight" };
+  }
+  if (!Number.isFinite(deliveryPerKgAbove) || deliveryPerKgAbove < 0 || deliveryPerKgAbove > 100000) {
+    return { error: "Enter the delivery charge above that weight" };
   }
   const deliveryNote = String(body.deliveryNote || "").trim();
   const paymentNote = String(body.paymentNote || "").trim();
   if (deliveryNote.length > 240) return { error: "Keep the delivery note under 240 characters" };
   if (paymentNote.length > 240) return { error: "Keep the payment note under 240 characters" };
-  return { value: { brandName, tagline, whatsappNumber, phone, email, deliveryCharge, deliveryNote, paymentNote } };
+  return {
+    value: {
+      brandName,
+      tagline,
+      whatsappNumber,
+      phone,
+      email,
+      deliveryLimitKg,
+      deliveryPerKgUpTo,
+      deliveryPerKgAbove,
+      deliveryNote,
+      paymentNote,
+    },
+  };
 }
 
 function imageFile(url) {
@@ -270,13 +297,30 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  const { name, category, description, ratePerKg, inStock, bestSeller } = parsed.value;
+  const { name, category, description, prices, inStock, bestSeller } = parsed.value;
   const sort = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM products").get().n || 0) + 1;
   const id = uniqueId(name);
   const now = new Date().toISOString();
   db.prepare(
-    "INSERT INTO products (id, name, category, description, rate_per_kg, image, in_stock, best_seller, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)",
-  ).run(id, name, category, description, ratePerKg, inStock ? 1 : 0, bestSeller ? 1 : 0, sort, now);
+    `INSERT INTO products (
+      id, name, category, description, rate_per_kg, image, in_stock, best_seller, sort_order, updated_at,
+      price_100, price_250, price_500, price_1000
+    ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    id,
+    name,
+    category,
+    description,
+    prices[1000],
+    inStock ? 1 : 0,
+    bestSeller ? 1 : 0,
+    sort,
+    now,
+    prices[100],
+    prices[250],
+    prices[500],
+    prices[1000],
+  );
   res.status(201).json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
@@ -291,10 +335,26 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  const { name, category, description, ratePerKg, inStock, bestSeller } = parsed.value;
+  const { name, category, description, prices, inStock, bestSeller } = parsed.value;
   db.prepare(
-    "UPDATE products SET name = ?, category = ?, description = ?, rate_per_kg = ?, in_stock = ?, best_seller = ?, updated_at = ? WHERE id = ?",
-  ).run(name, category, description, ratePerKg, inStock ? 1 : 0, bestSeller ? 1 : 0, new Date().toISOString(), req.params.id);
+    `UPDATE products SET
+      name = ?, category = ?, description = ?, rate_per_kg = ?, in_stock = ?, best_seller = ?, updated_at = ?,
+      price_100 = ?, price_250 = ?, price_500 = ?, price_1000 = ?
+    WHERE id = ?`,
+  ).run(
+    name,
+    category,
+    description,
+    prices[1000],
+    inStock ? 1 : 0,
+    bestSeller ? 1 : 0,
+    new Date().toISOString(),
+    prices[100],
+    prices[250],
+    prices[500],
+    prices[1000],
+    req.params.id,
+  );
   res.json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
 });
 
@@ -447,5 +507,5 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log(`Shiv Durga Spices server  http://localhost:${port}`);
+  console.log(`Shivdurga Kerala Spices server  http://localhost:${port}`);
 });

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
 import { useCatalog } from "../../catalog";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { CrossButton } from "../../components/CrossButton";
 import { SpiceVisual } from "../../components/SpiceVisual";
-import { PACKS, priceFor, rupees } from "../../format";
+import { PACKS } from "../../format";
 import { field } from "./field";
+import { PackPrices, packPricesFrom } from "./PackPrices";
 
 export function SpicesPage() {
   const { products, reload } = useCatalog();
@@ -19,7 +21,7 @@ export function SpicesPage() {
     <section>
       <h1 className="font-serif text-5xl">Spice rates and photos</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        Change one number, the auction rate per kg. The shop recalculates 100 g, 250 g, 500 g, and 1 kg for every visitor.
+        Type a price for each pack. A smaller pack can cost more for its size, and a larger pack can cost less.
       </p>
       {state?.notice && <p className="mt-4 text-sm text-leaf">{state.notice}</p>}
       <div className="mt-6 space-y-5">
@@ -41,13 +43,14 @@ function ProductEditor({ product, onSaved }) {
     name: product.name,
     category: product.category,
     description: product.description,
-    ratePerKg: product.ratePerKg,
+    prices: packPricesFrom(product),
     inStock: product.inStock,
     bestSeller: Boolean(product.bestSeller),
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   function set(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -60,9 +63,12 @@ function ProductEditor({ product, onSaved }) {
     try {
       await api(`/api/admin/products/${product.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ...form, ratePerKg: Number(form.ratePerKg) }),
+        body: JSON.stringify({
+          ...form,
+          prices: Object.fromEntries(PACKS.map((grams) => [grams, Number(form.prices[grams])])),
+        }),
       });
-      setMessage("Saved. The shop is using this rate.");
+      setMessage("Saved. The shop is using these prices.");
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -89,7 +95,7 @@ function ProductEditor({ product, onSaved }) {
   }
 
   async function remove() {
-    if (!window.confirm(`Remove ${product.name} from the shop?`)) return;
+    setConfirming(false);
     try {
       await api(`/api/admin/products/${product.id}`, { method: "DELETE" });
       onSaved();
@@ -125,19 +131,11 @@ function ProductEditor({ product, onSaved }) {
               value={form.description}
               onChange={(event) => set("description", event.target.value)}
               rows="2"
-              placeholder="One line customers see on the spice page."
+              placeholder="One line customers see under the spice name."
               className={field}
             />
           </label>
-          <label className="text-sm">
-            Auction rate per kg (₹)
-            <input
-              inputMode="numeric"
-              value={form.ratePerKg}
-              onChange={(event) => set("ratePerKg", event.target.value)}
-              className={field}
-            />
-          </label>
+          <PackPrices prices={form.prices} onChange={(grams, value) => set("prices", { ...form.prices, [grams]: value })} />
           <label className="flex items-end gap-2 pb-3 text-sm">
             <input type="checkbox" checked={form.inStock} onChange={(event) => set("inStock", event.target.checked)} />
             Available to order
@@ -147,23 +145,23 @@ function ProductEditor({ product, onSaved }) {
             Show in Our Best Sellers
           </label>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {PACKS.map((grams) => (
-            <div key={grams} className="rounded-2xl bg-cream px-3 py-2">
-              <p className="text-xs text-ink/60">{grams === 1000 ? "1 kg" : `${grams} g`}</p>
-              <p className="font-medium">{rupees(priceFor(form.ratePerKg, grams))}</p>
-            </div>
-          ))}
-        </div>
         {error && <p className="mt-3 text-sm text-maroon">{error}</p>}
         {message && <p className="mt-3 text-sm text-leaf">{message}</p>}
         <div className="mt-4 flex flex-wrap gap-3">
           <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-cream">
-            Save rate
+            Save prices
           </button>
-          <CrossButton label={`Remove ${product.name}`} tone="maroon" onClick={remove} />
+          <CrossButton label={`Remove ${product.name}`} tone="maroon" onClick={() => setConfirming(true)} />
         </div>
       </div>
+      <ConfirmModal
+        open={confirming}
+        title="Remove this spice?"
+        message={`${product.name} will leave the shop.`}
+        confirmLabel="Remove"
+        onConfirm={remove}
+        onCancel={() => setConfirming(false)}
+      />
     </form>
   );
 }

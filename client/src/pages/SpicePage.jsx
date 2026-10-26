@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useCart } from "../cart";
 import { useCatalog } from "../catalog";
 import { SpiceVisual } from "../components/SpiceVisual";
-import { rupees } from "../format";
+import { BRAND, rupees } from "../format";
 
 export function SpicePage() {
   const { id } = useParams();
@@ -14,7 +14,7 @@ export function SpicePage() {
   const [qty, setQty] = useState(1);
 
   useEffect(() => {
-    document.title = product ? `${product.name} · ${settings?.brandName || "Shiv Durga Spices"}` : "Spice";
+    document.title = product ? `${product.name} · ${settings?.brandName || BRAND}` : "Spice";
   }, [product, settings]);
 
   if (status === "loading") return <main className="mx-auto max-w-6xl px-5 py-16">Opening the shop…</main>;
@@ -42,7 +42,6 @@ export function SpicePage() {
         <p className="mt-4 max-w-lg text-lg text-ink/75">
           {product.description || "Whole spice from Kerala. Choose a pack and order on WhatsApp."}
         </p>
-        <p className="mt-4 text-sm text-ink/70">Today’s auction rate {rupees(product.ratePerKg)} per kg</p>
         <p className="mt-4 font-serif text-5xl">{rupees(pack.price)}</p>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {product.packs.map((item) => {

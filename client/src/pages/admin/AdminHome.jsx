@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { useCatalog } from "../../catalog";
 
 const cards = [
-  ["/admin/spices", "Spice rates and photos", "Change the auction rate, photo, and which spice is a best seller."],
-  ["/admin/spices/new", "Add a spice", "Put a new spice in the shop and set its auction rate."],
+  ["/admin/spices", "Spice prices and photos", "Type the price of each pack, change the photo, and choose a best seller."],
+  ["/admin/spices/new", "Add a spice", "Put a new spice in the shop and type a price for each pack."],
   ["/admin/reviews", "Customer reviews", "Edit the reviews that appear on the home page."],
   ["/admin/reviews/new", "Add a review", "Add a customer’s words, stars, and a WhatsApp screenshot."],
   ["/admin/shop", "Shop details", "Change contact details, the delivery charge, and how customers pay."],
@@ -15,7 +15,7 @@ export function AdminHome() {
   const { products, status } = useCatalog();
 
   useEffect(() => {
-    document.title = "Admin · Shiv Durga Spices";
+    document.title = "Admin · Shivdurga Kerala Spices";
   }, []);
 
   return (
