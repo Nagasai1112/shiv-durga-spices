@@ -11,7 +11,7 @@ export function Home() {
   const { products, settings, status } = useCatalog();
   const { hash, state } = useLocation();
   const brand = settings?.brandName || "Shivdurga Kerala Spices";
-  const tagline = settings?.tagline || "Taste and trust, straight from Kerala";
+  const tagline = settings?.tagline || "Taste and trust, straight from Keralam";
 
   useEffect(() => {
     document.title = brand;

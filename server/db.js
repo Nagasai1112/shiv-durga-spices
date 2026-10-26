@@ -253,7 +253,10 @@ if (foldedBrand === "shivdurgaspices" || foldedBrand === "shivdurgakeralaspices"
   db.prepare("UPDATE settings SET value = ? WHERE key = 'brand_name'").run("Shivdurga Kerala Spices");
 }
 setting("whatsapp_number", "");
-setting("tagline", "Taste and trust, straight from Kerala");
+setting("tagline", "Taste and trust, straight from Keralam");
+if (db.prepare("SELECT value FROM settings WHERE key = 'tagline'").get()?.value === "Taste and trust, straight from Kerala") {
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'tagline'").run("Taste and trust, straight from Keralam");
+}
 setting("phone", "917672091892");
 setting("email", "shivdurgaspices@gmail.com");
 setting("delivery_charge", "0");
@@ -278,14 +281,38 @@ const reviewSeeds = [
   ["aroma", "Super aroma, and it is tasty.", "/reviews/aroma.jpg"],
   ["parcel", "Spices received. The aroma is really good.", "/reviews/parcel.jpg"],
   ["orders", "The aroma is really good, and we are ready to order more.", "/reviews/orders.jpg"],
+  ["kerala-taste", "The spices are really good, like what I bought five years back in Kerala.", "/reviews/kerala-taste.jpg"],
+  ["packing-quality", "The parcel arrived. The packing is good, and the quality is good too.", "/reviews/packing-quality.jpg"],
+  ["fresh-cardamom", "The parcel arrived. The spices are fresh, and the cardamom is very good.", "/reviews/fresh-cardamom.jpg"],
+  ["elachi-quality", "The quality is super. The cardamom is so good, I feel like eating it as it is.", "/reviews/elachi-quality.jpg"],
+  ["order-received", "I received the order. The spices are very good.", "/reviews/order-received.jpg"],
+  ["super-packing", "I received the product. The quality is super and the packing is good.", "/reviews/super-packing.jpg"],
+  ["strong-aroma", "The packing is really good. The quality is very good, and the smell is strong when the parcel is opened.", "/reviews/strong-aroma.jpg"],
+  ["good-packing", "I received the parcel. The quality and packing are good.", "/reviews/good-packing.jpg"],
+  ["true-flavor", "The nuts and spices smell natural, and the packing is amazing. I would like to buy more.", "/reviews/true-flavor.jpg"],
+  ["spices-good", "The spices are really very good.", "/reviews/spices-good.jpg"],
+  ["aroma-received", "The spices arrived, and the aroma is very good.", "/reviews/aroma-received.jpg"],
+  ["more-orders", "My friends are ready to order, and people in my apartment want to order too.", "/reviews/more-orders.jpg"],
+  ["used-spices", "I used the spices. They are very good. Thank you.", "/reviews/used-spices.jpg"],
+  ["perfect-pack", "The parcel arrived, the quality is good, and the packaging is perfect this time.", "/reviews/perfect-pack.jpg"],
+  ["relatives", "My relatives said the quality is very good.", "/reviews/relatives.jpg"],
+  ["just-received", "The product arrived just now. The quality is very good.", "/reviews/just-received.jpg"],
+  ["aroma-nice", "The aroma is noticeable, and it is nice.", "/reviews/aroma-nice.jpg"],
+  ["super-aroma", "Super aroma, and it is tasty.", "/reviews/super-aroma.jpg"],
+  ["no-damage", "It arrived yesterday. There is no damage, and it is good.", "/reviews/no-damage.jpg"],
+  ["family-home", "The product reached us. Everyone at home said it is good.", "/reviews/family-home.jpg"],
 ];
 
-if (db.prepare("SELECT COUNT(*) AS n FROM reviews").get().n === 0) {
-  const insertReview = db.prepare(
-    "INSERT INTO reviews (id, quote, label, stars, image, sort_order, created_at) VALUES (?, ?, ?, 5, ?, ?, ?)",
-  );
-  const now = new Date().toISOString();
-  reviewSeeds.forEach((row, index) => insertReview.run(row[0], row[1], "Verified customer", row[2], index + 1, now));
+const insertReview = db.prepare(
+  "INSERT INTO reviews (id, quote, label, stars, image, sort_order, created_at) VALUES (?, ?, ?, 5, ?, ?, ?)",
+);
+const savedReviewIds = new Set(db.prepare("SELECT id FROM reviews").all().map((row) => row.id));
+let reviewSort = db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM reviews").get().n || 0;
+const reviewNow = new Date().toISOString();
+for (const [id, quote, image] of reviewSeeds) {
+  if (savedReviewIds.has(id)) continue;
+  reviewSort += 1;
+  insertReview.run(id, quote, "Verified customer", image, reviewSort, reviewNow);
 }
 
 export function toReview(row) {
@@ -302,7 +329,7 @@ export function getSettings() {
   return {
     brandName: setting("brand_name", "Shivdurga Kerala Spices"),
     whatsappNumber: setting("whatsapp_number", ""),
-    tagline: setting("tagline", "Taste and trust, straight from Kerala"),
+    tagline: setting("tagline", "Taste and trust, straight from Keralam"),
     phone: setting("phone", "917672091892"),
     email: setting("email", "shivdurgaspices@gmail.com"),
     deliveryLimitKg: Number(setting("delivery_limit_kg", "5")) || 5,

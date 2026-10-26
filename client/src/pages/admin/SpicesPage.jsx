@@ -1,33 +1,63 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
 import { useCatalog } from "../../catalog";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { CrossButton } from "../../components/CrossButton";
 import { SpiceVisual } from "../../components/SpiceVisual";
-import { PACKS } from "../../format";
+import { PACKS, rupees } from "../../format";
 import { field } from "./field";
 import { PackPrices, packPricesFrom } from "./PackPrices";
 
 export function SpicesPage() {
   const { products, reload } = useCatalog();
   const { state } = useLocation();
+  const [openId, setOpenId] = useState("");
+  const openedNotice = useRef(false);
+  const ordered = [...products].reverse();
+  const open = ordered.find((product) => product.id === openId);
 
   useEffect(() => {
     document.title = "Spices · Admin";
   }, []);
 
+  useEffect(() => {
+    const newest = products[products.length - 1];
+    if (!state?.notice || openedNotice.current || !newest) return;
+    openedNotice.current = true;
+    setOpenId(newest.id);
+  }, [state, products]);
+
   return (
     <section>
       <h1 className="font-serif text-5xl">Spice rates and photos</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        Type a price for each pack. A smaller pack can cost more for its size, and a larger pack can cost less.
+        The newest spice is at the top. Open a card to change its prices, photo, or description. A smaller pack can cost more for its size, and a larger pack can cost less.
       </p>
       {state?.notice && <p className="mt-4 text-sm text-leaf">{state.notice}</p>}
-      <div className="mt-6 space-y-5">
-        {products.map((product) => (
-          <ProductEditor key={product.id} product={product} onSaved={reload} />
-        ))}
+      {open && (
+        <div className="mt-6">
+          <ProductEditor key={open.id} product={open} onSaved={reload} onClose={() => setOpenId("")} />
+        </div>
+      )}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ordered.map((product) => {
+          const pack = product.packs?.[0];
+          return (
+            <button
+              key={product.id}
+              type="button"
+              onClick={() => setOpenId(product.id)}
+              className={`overflow-hidden rounded-3xl border bg-card text-left ${openId === product.id ? "border-ink" : "border-line"}`}
+            >
+              <SpiceVisual product={product} className="aspect-[4/3] w-full" />
+              <span className="block p-4">
+                <span className="block font-serif text-2xl">{product.name}</span>
+                <span className="mt-1 block text-sm text-ink/70">{pack ? `${pack.label} · ${rupees(pack.price)}` : product.category}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
       {products.length === 0 && (
         <p className="mt-6 text-sm text-ink/75">
@@ -38,7 +68,7 @@ export function SpicesPage() {
   );
 }
 
-function ProductEditor({ product, onSaved }) {
+function ProductEditor({ product, onSaved, onClose }) {
   const [form, setForm] = useState({
     name: product.name,
     category: product.category,
@@ -150,6 +180,9 @@ function ProductEditor({ product, onSaved }) {
         <div className="mt-4 flex flex-wrap gap-3">
           <button type="submit" className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-cream">
             Save prices
+          </button>
+          <button type="button" onClick={onClose} className="rounded-full border border-line px-4 py-2 text-sm">
+            Close
           </button>
           <CrossButton label={`Remove ${product.name}`} tone="maroon" onClick={() => setConfirming(true)} />
         </div>

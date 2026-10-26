@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 
 function usePerView() {
@@ -65,6 +66,9 @@ export function ReviewCarousel() {
         <div>
           <p className="text-xs tracking-[0.2em] text-saffron uppercase">Customers</p>
           <h2 className="mt-2 font-serif text-3xl">What customers say</h2>
+          <Link to="/reviews" className="mt-2 inline-block text-sm text-leaf hover:underline">
+            See all reviews
+          </Link>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => go(index - 1)} disabled={index === 0} className="h-10 w-10 rounded-full border border-line bg-card disabled:opacity-40" aria-label="Previous reviews">

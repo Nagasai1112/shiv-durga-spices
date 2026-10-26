@@ -10,6 +10,8 @@ const links = [
   ["/", "Home"],
   ["/shop", "Shop"],
   ["/#story", "Our story"],
+  ["/reviews", "Reviews"],
+  ["/track", "Track"],
 ];
 
 export function Header() {
@@ -124,7 +126,7 @@ export function Header() {
             {count > 0 && <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">{count}</span>}
           </button>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-5 px-5 pb-3 text-sm md:hidden">
+        <nav className="mx-auto flex max-w-6xl flex-wrap gap-x-5 gap-y-2 px-5 pb-3 text-sm md:hidden">
           {links.map(([to, label]) => {
             if (to === "/#story") {
               return (

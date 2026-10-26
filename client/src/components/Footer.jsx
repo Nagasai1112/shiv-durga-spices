@@ -7,7 +7,9 @@ const menu = [
   ["/", "Home"],
   ["/shop", "Shop"],
   ["/#story", "Our story"],
+  ["/reviews", "Reviews"],
   ["/order", "Order"],
+  ["/track", "Track"],
 ];
 
 export function Footer() {
@@ -17,7 +19,7 @@ export function Footer() {
 
   return (
     <footer className="mt-20 bg-ink text-cream">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[auto_1fr_auto] md:items-start md:gap-16">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-2 md:items-start lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-12">
         <HomeLink className="justify-self-center md:justify-self-start">
           <img
             src="/logo.jpg"
@@ -61,6 +63,21 @@ export function Footer() {
         </div>
 
         <div>
+          <h2 className="text-sm font-semibold tracking-[0.16em] uppercase">Reach us</h2>
+          <a
+            href="https://www.instagram.com/shivdurgaspices/"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Shivdurga Kerala Spices on Instagram"
+            className="mt-4 inline-flex text-cream hover:text-white"
+          >
+            <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/25 bg-white text-ink">
+              <InstagramIcon />
+            </span>
+          </a>
+        </div>
+
+        <div>
           <h2 className="text-sm font-semibold tracking-[0.16em] uppercase">Menu</h2>
           <ul className="mt-4 space-y-2 text-sm">
             {menu.map(([to, label]) => (
@@ -87,5 +104,15 @@ export function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.4" cy="6.6" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
   );
 }

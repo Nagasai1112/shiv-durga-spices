@@ -16,7 +16,7 @@ The site works on a computer and on a phone. Layout uses Tailwind CSS utility cl
 - Our Best Sellers. Marked spices sit side by side on a wide screen. On a phone they stack.
 - Featured spices. Each card shows the description, then 100 g, 250 g, 500 g, and 1 kg. Tap a weight and that pack’s price changes.
 - Three steps: choose a spice, choose a pack, send the order on WhatsApp.
-- A customer-review carousel. On a wide screen several cards show at once. It pauses when the pointer is over it.
+- A customer-review carousel. On a wide screen several cards show at once. It pauses when the pointer is over it. **See all reviews** opens the reviews page.
 - An Our story section.
 
 ### Shop
@@ -55,9 +55,17 @@ Delivery is one flat charge for the whole order. Up to 5 kg, including a small p
 
 The phone’s back button closes the order drawer and stays on the site. **Shop more** closes the drawer and opens the shop, with the spices already chosen still in the cart.
 
+### Reviews
+
+`/reviews` lists every customer review as a card. The newest review is at the top. Each card shows the WhatsApp screenshot, the stars, and the customer’s words. No sign-in is needed. The home carousel stays in its own order and links here.
+
+### Track
+
+After dispatch, the shop sends an India Post number on WhatsApp. The customer opens **Track**, pastes that number, and India Post opens so they can see the parcel. The number looks like `CL123456789IN`. No customer login is required. India Post asks for the number on its own page.
+
 ### Header and footer
 
-The round logo and the trade name go back to the home page. The footer lists the address as Thiruvananthapuram, Kerala, plus the shop phone and email.
+The header links are Home, Shop, Our story, Reviews, and Track. The round logo and the trade name go back to the home page. The footer lists the address as Thiruvananthapuram, Kerala, plus the shop phone and email. **Reach us** is the Instagram icon only. It opens https://www.instagram.com/shivdurgaspices/ in a new tab. The footer menu adds Order beside those header links.
 
 ## What the shopkeeper can do
 
@@ -69,7 +77,8 @@ Open `/sign-in`. After signing in, the admin home links to spices, reviews, shop
 - For each spice: name, category, description, in-stock switch, best-seller switch, and a separate price for 100 g, 250 g, 500 g, and 1 kg.
 - Upload a JPG, PNG, or WebP photo up to 5 MB.
 - Add a spice or remove one. Removing asks for confirmation in a dialog on the page.
-- Add, edit, or remove a customer review.
+- Spices and reviews are shown as cards, side by side. The newest one is at the top. Open a card to edit that spice or review, then close it to return to the cards.
+- Add, edit, or remove a customer review, including the WhatsApp screenshot.
 
 New spices added in admin appear in the shop with the ones already there. The starter list is only what a new database begins with.
 
@@ -90,7 +99,7 @@ The first time the server runs, and when an older database still has the previou
 
 Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Their photos ship with the site in `client/public/spices`. A photo uploaded later from admin replaces the starter photo for that spice.
 
-The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Kerala**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
+The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Keralam**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
 
 ## How the project is put together
 

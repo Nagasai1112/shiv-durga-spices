@@ -17,6 +17,8 @@ import { SpicesPage } from "./pages/admin/SpicesPage";
 import { Home } from "./pages/Home";
 import { SignIn } from "./pages/SignIn";
 import { Order } from "./pages/Order";
+import { Reviews } from "./pages/Reviews";
+import { Track } from "./pages/Track";
 import { Shop } from "./pages/Shop";
 import { SpicePage } from "./pages/SpicePage";
 
@@ -49,6 +51,8 @@ export default function App() {
                 <Route path="/shop" element={<Shop />} />
                 <Route path="/spice/:id" element={<SpicePage />} />
                 <Route path="/order" element={<Order />} />
+                <Route path="/reviews" element={<Reviews />} />
+                <Route path="/track" element={<Track />} />
                 <Route path="/sign-in" element={<SignIn />} />
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminHome />} />

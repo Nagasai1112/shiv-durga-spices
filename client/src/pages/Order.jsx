@@ -228,7 +228,11 @@ export function Order() {
       <section>
         <h1 className="font-serif text-5xl">Review the order</h1>
         <p className="mt-3 text-ink/75">
-          Spice prices are from when you added each pack. {deliveryLine(settings)} Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. {settings?.paymentNote}
+          Spice prices are from when you added each pack. {deliveryLine(settings)} Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. After dispatch, the shop sends an India Post number on WhatsApp. Paste it on{" "}
+          <Link to="/track" className="text-leaf underline decoration-leaf/30 underline-offset-4">
+            Track
+          </Link>{" "}
+          to follow the parcel. {settings?.paymentNote}
         </p>
         <div className="mt-6 space-y-3">
           {items.map((item) => (
