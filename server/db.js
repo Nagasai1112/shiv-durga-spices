@@ -164,6 +164,17 @@ const previousPhotoIds = {
   "bay-leaf": ["bay-leaf"],
 };
 
+const bundledPhotos = {
+  cardamom: "/spices/cardamom.jpg",
+  clove: "/spices/clove.jpg",
+  "cinnamon-stick": "/spices/cinnamon-stick.jpg",
+  "black-pepper": "/spices/black-pepper.jpg",
+  "star-anise": "/spices/star-anise.jpg",
+  mace: "/spices/mace.jpg",
+  nutmeg: "/spices/nutmeg.jpg",
+  "bay-leaf": "/spices/bay-leaf.jpg",
+};
+
 const obsoleteIds = ["kashmiri-chilli", "turmeric", "coriander", "garam-masala", "cumin", "mustard"];
 
 function savedPhoto(imageById, id) {
@@ -190,7 +201,7 @@ function insertDefaultSpices(imageById = new Map()) {
       name,
       description,
       rate,
-      savedPhoto(imageById, id),
+      savedPhoto(imageById, id) || bundledPhotos[id] || null,
       bestSeller,
       index + 1,
       now,
@@ -224,6 +235,15 @@ if (catalogVersion !== "2" && (productCount === 0 || obsoleteCount > 0)) {
   db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
 } else if (catalogVersion !== "2") {
   db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
+}
+
+const useBundledPhoto = db.prepare("UPDATE products SET image = ? WHERE id = ?");
+for (const [id, image] of Object.entries(bundledPhotos)) {
+  const row = db.prepare("SELECT image FROM products WHERE id = ?").get(id);
+  if (!row) continue;
+  const upload = row.image && row.image.startsWith("/uploads/") ? path.join(uploadsDir, path.basename(row.image)) : "";
+  if (upload && fs.existsSync(upload)) continue;
+  if (row.image !== image) useBundledPhoto.run(image, id);
 }
 
 setting("brand_name", "Shivdurga Kerala Spices");

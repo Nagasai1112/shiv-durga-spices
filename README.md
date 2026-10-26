@@ -88,7 +88,7 @@ The first time the server runs, and when an older database still has the previou
 | Nutmeg | A warm, fragrant spice with a slightly sweet and nutty flavour, perfect for sweets, curries, and beverages. |
 | Bay Leaf | An aromatic leaf that adds a subtle, earthy fragrance and flavour to rice dishes, curries, and gravies. |
 
-Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Photos are empty until a photo is uploaded, except where a photo was already saved for that spice.
+Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Their photos ship with the site in `client/public/spices`. A photo uploaded later from admin replaces the starter photo for that spice.
 
 The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Kerala**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
 
