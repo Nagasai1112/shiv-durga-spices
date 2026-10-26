@@ -4,6 +4,19 @@ A shop website for Shivdurga Kerala Spices in Thiruvananthapuram, Kerala. Custom
 
 The shopkeeper changes pack prices, photos, descriptions, reviews, delivery charges, shop details, and the password from the admin pages. Sign in is at `/sign-in`. That page is not linked from the header or the footer.
 
+## Live site
+
+The public shop is https://shivdurgaspices.com. https://www.shivdurgaspices.com redirects there. The domain is registered at Namecheap. One Render web service, `shiv-durga-spices`, serves the built pages and the API together. There is no separate frontend host.
+
+Namecheap stays on BasicDNS. The host records are:
+
+| Type | Host | Value |
+| --- | --- | --- |
+| A | `@` | `216.24.57.1` |
+| CNAME | `www` | `shiv-durga-spices.onrender.com` |
+
+Render verifies the names and issues the HTTPS certificate. The Render workspace stays on the free Hobby plan. The service instance is separate: a free instance sleeps after a quiet period, and a paid instance stays awake. Prices, uploaded photos, and the WhatsApp number are stored on the service disk. A persistent disk is what keeps those admin changes after a restart or a new deploy.
+
 ## What a customer can do
 
 The site works on a computer and on a phone. Layout uses Tailwind CSS utility classes, so sections sit in columns on a wide screen and stack on a small one.
@@ -142,7 +155,7 @@ npm start
 
 The site and the API are then on port 4000, or on `PORT` from the environment. Set `NODE_ENV=production` so the admin sign-in cookie is only sent over HTTPS. Set `NODE_VERSION=22` on the host.
 
-On Render, use this build command:
+On Render, the live service is the one web service above. Use this build command:
 
 ```bash
 npm install && npm install --prefix client --include=dev && npm run build
