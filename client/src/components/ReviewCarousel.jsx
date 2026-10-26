@@ -61,7 +61,7 @@ export function ReviewCarousel() {
   }
 
   return (
-    <section className="mx-auto mt-16 max-w-6xl px-5" aria-label="Customer reviews">
+    <section className="mx-auto mt-10 max-w-6xl px-5" aria-label="Customer reviews">
       <div className="mb-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs tracking-[0.2em] text-saffron uppercase">Customers</p>

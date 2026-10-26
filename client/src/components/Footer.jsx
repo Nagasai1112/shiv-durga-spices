@@ -12,6 +12,15 @@ const menu = [
   ["/track", "Track"],
 ];
 
+const legal = [
+  ["/privacy", "Privacy policy"],
+  ["/refunds", "Refund and returns"],
+  ["/shipping", "Shipping"],
+  ["/terms", "Terms"],
+  ["/contact", "Contact"],
+  ["/#story", "About us"],
+];
+
 export function Footer() {
   const { settings } = useCatalog();
   const phone = settings?.phone || "917672091892";
@@ -19,7 +28,7 @@ export function Footer() {
 
   return (
     <footer className="mt-20 bg-ink text-cream">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-2 md:items-start lg:grid-cols-[auto_minmax(0,1fr)_auto_auto] lg:gap-12">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-2 md:items-start lg:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] lg:gap-10">
         <HomeLink className="justify-self-center md:justify-self-start">
           <img
             src="/logo.jpg"
@@ -81,6 +90,23 @@ export function Footer() {
           <h2 className="text-sm font-semibold tracking-[0.16em] uppercase">Menu</h2>
           <ul className="mt-4 space-y-2 text-sm">
             {menu.map(([to, label]) => (
+              <li key={to}>
+                {to === "/#story" ? (
+                  <StoryLink className="text-cream/90 hover:text-white">{label}</StoryLink>
+                ) : (
+                  <Link to={to} className="text-cream/90 hover:text-white">
+                    {label}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h2 className="text-sm font-semibold tracking-[0.16em] uppercase">Legal</h2>
+          <ul className="mt-4 space-y-2 text-sm">
+            {legal.map(([to, label]) => (
               <li key={to}>
                 {to === "/#story" ? (
                   <StoryLink className="text-cream/90 hover:text-white">{label}</StoryLink>

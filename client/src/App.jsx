@@ -18,6 +18,7 @@ import { Home } from "./pages/Home";
 import { SignIn } from "./pages/SignIn";
 import { Order } from "./pages/Order";
 import { Reviews } from "./pages/Reviews";
+import { Contact, PrivacyPolicy, RefundPolicy, ShippingPolicy, Terms } from "./pages/Legal";
 import { Track } from "./pages/Track";
 import { Shop } from "./pages/Shop";
 import { SpicePage } from "./pages/SpicePage";
@@ -53,6 +54,11 @@ export default function App() {
                 <Route path="/order" element={<Order />} />
                 <Route path="/reviews" element={<Reviews />} />
                 <Route path="/track" element={<Track />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/refunds" element={<RefundPolicy />} />
+                <Route path="/shipping" element={<ShippingPolicy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/contact" element={<Contact />} />
                 <Route path="/sign-in" element={<SignIn />} />
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminHome />} />

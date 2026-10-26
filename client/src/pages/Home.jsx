@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useCatalog } from "../catalog";
 import { HomeCarousel } from "../components/HomeCarousel";
-import { PurityMarquee } from "../components/HomeMarquee";
+import { PurityMarquee, UnboxingMarquee } from "../components/HomeMarquee";
 import { StoryLink, scrollToStory } from "../components/SiteLinks";
 import { ReviewCarousel } from "../components/ReviewCarousel";
 import { SpiceCard } from "../components/SpiceCard";
@@ -98,6 +98,9 @@ export function Home() {
         ))}
       </section>
 
+      <div className="mt-16">
+        <UnboxingMarquee />
+      </div>
       <ReviewCarousel />
 
       <section id="story" className="mx-auto mt-16 max-w-6xl scroll-mt-28 px-5">

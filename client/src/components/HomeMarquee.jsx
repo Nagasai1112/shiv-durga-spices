@@ -3,6 +3,12 @@ import { useCatalog } from "../catalog";
 
 const message = "Bulk orders are available. International orders are welcome. Prices may vary according to the stock.";
 
+const unboxingLines = [
+  "360° unboxing video is mandatory.",
+  "Open the parcel clearly without hiding the items.",
+  "Only clear opening videos will be accepted for missing or wrong item claims.",
+];
+
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = useState(false);
 
@@ -51,6 +57,36 @@ export function PurityMarquee() {
         <div className="marquee-track flex w-max py-2.5 whitespace-nowrap" aria-hidden="true">
           <span className="flex">{[0, 1, 2, 3].map(line)}</span>
           <span className="flex">{[4, 5, 6, 7].map(line)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function UnboxingMarquee() {
+  const reduceMotion = usePrefersReducedMotion();
+  const copy = unboxingLines.join(" ");
+
+  const line = (key) => (
+    <span key={key} className="mx-6 inline-flex items-center gap-6">
+      {unboxingLines.map((item) => (
+        <span key={item} className="inline-flex items-center gap-6">
+          <span>{item}</span>
+          <span className="text-saffron" aria-hidden="true">·</span>
+        </span>
+      ))}
+    </span>
+  );
+
+  return (
+    <div className="overflow-hidden bg-ink text-sm text-cream">
+      <p className="sr-only">{copy}</p>
+      {reduceMotion ? (
+        <p className="px-5 py-2.5 text-center">{copy}</p>
+      ) : (
+        <div className="marquee-track flex w-max py-2.5 whitespace-nowrap" aria-hidden="true">
+          <span className="flex">{[0, 1].map(line)}</span>
+          <span className="flex">{[2, 3].map(line)}</span>
         </div>
       )}
     </div>
