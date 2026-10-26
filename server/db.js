@@ -8,8 +8,9 @@ import dotenv from "dotenv";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
-const dataDir = path.join(__dirname, "data");
-export const uploadsDir = path.join(__dirname, "uploads");
+const dataRoot = process.env.DATA_DIR || __dirname;
+const dataDir = path.join(dataRoot, "data");
+export const uploadsDir = path.join(dataRoot, "uploads");
 fs.mkdirSync(dataDir, { recursive: true });
 fs.mkdirSync(uploadsDir, { recursive: true });
 

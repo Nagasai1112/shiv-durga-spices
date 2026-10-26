@@ -15,7 +15,9 @@ Namecheap stays on BasicDNS. The host records are:
 | A | `@` | `216.24.57.1` |
 | CNAME | `www` | `shiv-durga-spices.onrender.com` |
 
-Render verifies the names and issues the HTTPS certificate. The Render workspace stays on the free Hobby plan. The service instance is separate: a free instance sleeps after a quiet period, and a paid instance stays awake. Prices, uploaded photos, and the WhatsApp number are stored on the service disk. A persistent disk is what keeps those admin changes after a restart or a new deploy.
+Render verifies the names and issues the HTTPS certificate. The Render workspace stays on the free Hobby plan. The service instance is separate: a free instance sleeps after a quiet period, and a paid instance stays awake.
+
+Admin names, prices, photos, and the WhatsApp number stay across deploys only when the paid service has a persistent disk mounted at `/var/data` and the environment variable `DATA_DIR` is `/var/data`. The database and uploaded photos are both stored under that folder. Without it, a deploy starts again from the starter spices.
 
 ## What a customer can do
 
@@ -117,7 +119,7 @@ The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trus
 ## How the project is put together
 
 - `client` is a React site built with Vite, React Router, and Tailwind.
-- `server` is Node and Express. It stores the shop in SQLite (`server/data/shop.db`) and product photos in `server/uploads`.
+- `server` is Node and Express. It stores the shop in SQLite (`server/data/shop.db`) and product photos in `server/uploads`. On Render, set `DATA_DIR` to the persistent disk mount path and both folders are created there instead.
 - In development, Vite serves the site on port 5173 and forwards `/api` and `/uploads` to the API on port 4000.
 - In production, `npm start` serves the built site and the API from the same Node process.
 
