@@ -49,7 +49,38 @@ db.exec(`
     sort_order INTEGER NOT NULL,
     created_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    name TEXT NOT NULL,
+    door TEXT NOT NULL,
+    city TEXT NOT NULL,
+    address TEXT NOT NULL,
+    pin TEXT NOT NULL,
+    district TEXT NOT NULL,
+    landmark TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    items_json TEXT NOT NULL,
+    spice_total INTEGER NOT NULL,
+    delivery_charge INTEGER NOT NULL,
+    total INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new'
+  );
 `);
+
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (columns.some((col) => col.name === column)) return false;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  return true;
+}
+
+ensureColumn("admin", "username", "TEXT NOT NULL DEFAULT 'admin'");
+ensureColumn("orders", "confirm_token", "TEXT NOT NULL DEFAULT ''");
+const addedBestSeller = ensureColumn("products", "best_seller", "INTEGER NOT NULL DEFAULT 0");
+if (addedBestSeller) {
+  db.prepare("UPDATE products SET best_seller = 1 WHERE lower(name) LIKE '%cardamom%'").run();
+}
 
 export const PACKS = [100, 250, 500, 1000];
 
@@ -70,6 +101,7 @@ export function toProduct(row) {
     ratePerKg: row.rate_per_kg,
     image: row.image,
     inStock: Boolean(row.in_stock),
+    bestSeller: Boolean(row.best_seller),
     updatedAt: row.updated_at,
     packs: PACKS.map((grams) => ({
       grams,
@@ -109,10 +141,10 @@ function setting(key, fallback) {
 }
 
 const seeds = [
-  ["kashmiri-chilli", "Kashmiri chilli", "Ground", "Bright red and mild. The colour in gravies, marinades, and Sunday chicken.", 1200],
-  ["turmeric", "Turmeric powder", "Ground", "Golden and earthy, for dal, rice, and haldi doodh.", 480],
-  ["coriander", "Coriander powder", "Ground", "Warm and citrusy. A quiet base for almost every masala.", 360],
-  ["garam-masala", "Garam masala", "Blends", "A roasted house blend, added at the end so the aroma stays.", 880],
+  ["kashmiri-chilli", "Kashmiri chilli", "Whole", "Bright red and mild. The colour in gravies, marinades, and Sunday chicken.", 1200],
+  ["turmeric", "Turmeric powder", "Whole", "Golden and earthy, for dal, rice, and haldi doodh.", 480],
+  ["coriander", "Coriander powder", "Whole", "Warm and citrusy. A quiet base for almost every masala.", 360],
+  ["garam-masala", "Garam masala", "Whole", "A roasted house blend, added at the end so the aroma stays.", 880],
   ["cumin", "Cumin seeds", "Whole", "Nutty jeera for tadka. Crush a pinch if you want it louder.", 720],
   ["black-pepper", "Black pepper", "Whole", "Whole peppercorns with a sharp, piney heat.", 980],
   ["cardamom", "Green cardamom", "Whole", "Fragrant pods for chai, kheer, and biryani.", 3600],
@@ -131,6 +163,15 @@ if (count === 0) {
 setting("brand_name", "Shiv Durga Spices");
 setting("whatsapp_number", "");
 setting("tagline", "Taste and trust, straight from Kerala");
+setting("phone", "917672091892");
+setting("email", "shivdurgaspices@gmail.com");
+setting("delivery_charge", "0");
+setting("delivery_note", "We deliver to the address you enter.");
+const oldDeliveryNote = "We deliver to the address you enter. The delivery charge below is added to the order.";
+if (db.prepare("SELECT value FROM settings WHERE key = 'delivery_note'").get()?.value === oldDeliveryNote) {
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'delivery_note'").run("We deliver to the address you enter.");
+}
+setting("payment_note", "Pay by UPI or cash. We confirm the payment with you on WhatsApp.");
 
 if (!db.prepare("SELECT id FROM admin WHERE id = 1").get()) {
   setPassword(process.env.ADMIN_PASSWORD || "shivdurga");
@@ -168,6 +209,11 @@ export function getSettings() {
     brandName: setting("brand_name", "Shiv Durga Spices"),
     whatsappNumber: setting("whatsapp_number", ""),
     tagline: setting("tagline", "Taste and trust, straight from Kerala"),
+    phone: setting("phone", "917672091892"),
+    email: setting("email", "shivdurgaspices@gmail.com"),
+    deliveryCharge: Number(setting("delivery_charge", "0")) || 0,
+    deliveryNote: setting("delivery_note", "We deliver to the address you enter."),
+    paymentNote: setting("payment_note", "Pay by UPI or cash. We confirm the payment with you on WhatsApp."),
   };
 }
 
@@ -178,5 +224,10 @@ export function saveSettings(next) {
   put.run("brand_name", next.brandName);
   put.run("whatsapp_number", next.whatsappNumber);
   put.run("tagline", next.tagline);
+  put.run("phone", next.phone);
+  put.run("email", next.email);
+  put.run("delivery_charge", String(next.deliveryCharge));
+  put.run("delivery_note", next.deliveryNote);
+  put.run("payment_note", next.paymentNote);
   return getSettings();
 }

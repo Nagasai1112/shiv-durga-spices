@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCatalog } from "../catalog";
 
-const message = "Bulk orders are available. International orders are welcome.";
+const message = "Bulk orders are available. International orders are welcome. Prices may vary according to the stock.";
 
 function usePrefersReducedMotion() {
   const [reduce, setReduce] = useState(false);
@@ -15,6 +15,46 @@ function usePrefersReducedMotion() {
   }, []);
 
   return reduce;
+}
+
+const purityLine = "100% Pure & Authentic Spices • Rich Aroma • Bold Flavor • Authentic Taste";
+
+export function PurityMarquee() {
+  const reduceMotion = usePrefersReducedMotion();
+  const line = (copy) => (
+    <span key={copy} className="mx-8 inline-flex items-center gap-8">
+      <span>100% Pure & Authentic Spices</span>
+      <span className="text-saffron" aria-hidden="true">
+        •
+      </span>
+      <span>Rich Aroma</span>
+      <span className="text-saffron" aria-hidden="true">
+        •
+      </span>
+      <span>Bold Flavor</span>
+      <span className="text-saffron" aria-hidden="true">
+        •
+      </span>
+      <span>Authentic Taste</span>
+      <span className="text-saffron" aria-hidden="true">
+        •
+      </span>
+    </span>
+  );
+
+  return (
+    <div className="overflow-hidden border-y border-white/10 bg-ink text-sm text-cream">
+      <p className="sr-only">{purityLine}</p>
+      {reduceMotion ? (
+        <p className="px-5 py-2.5 text-center">{purityLine}</p>
+      ) : (
+        <div className="marquee-track flex w-max py-2.5 whitespace-nowrap" aria-hidden="true">
+          <span className="flex">{[0, 1, 2, 3].map(line)}</span>
+          <span className="flex">{[4, 5, 6, 7].map(line)}</span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function HomeMarquee() {
@@ -31,6 +71,8 @@ export function HomeMarquee() {
       <span>Bulk orders are available</span>
       <span className="text-saffron">·</span>
       <span>International orders are welcome</span>
+      <span className="text-saffron">·</span>
+      <span>Prices may vary according to the stock</span>
       <span className="text-saffron">·</span>
       <span className="underline decoration-saffron decoration-2 underline-offset-4">Order on WhatsApp</span>
     </span>

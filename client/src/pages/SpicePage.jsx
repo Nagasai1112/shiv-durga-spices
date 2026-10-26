@@ -39,7 +39,9 @@ export function SpicePage() {
       <div>
         <p className="text-xs tracking-[0.18em] text-saffron uppercase">{product.category}</p>
         <h1 className="mt-2 font-serif text-5xl">{product.name}</h1>
-        <p className="mt-4 max-w-lg text-lg text-ink/75">{product.description}</p>
+        <p className="mt-4 max-w-lg text-lg text-ink/75">
+          {product.description || "Whole spice from Kerala. Choose a pack and order on WhatsApp."}
+        </p>
         <p className="mt-4 text-sm text-ink/70">Today’s auction rate {rupees(product.ratePerKg)} per kg</p>
         <p className="mt-4 font-serif text-5xl">{rupees(pack.price)}</p>
         <div className="mt-4 grid grid-cols-4 gap-2">

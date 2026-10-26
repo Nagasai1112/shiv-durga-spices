@@ -3,6 +3,7 @@ import { Form, Formik, useField, useFormikContext } from "formik";
 import { Link } from "react-router-dom";
 import * as Yup from "yup";
 import { useCart } from "../cart";
+import { CrossButton } from "../components/CrossButton";
 import { useCatalog } from "../catalog";
 import { rupees } from "../format";
 
@@ -37,6 +38,10 @@ const orderSchema = Yup.object({
     .required("PIN number is required.")
     .matches(/^\d{6}$/, { message: "Enter a 6-digit PIN number.", excludeEmptyString: true }),
   district: Yup.string().trim().required("District is required."),
+  phone: Yup.string()
+    .trim()
+    .required("Phone number is required.")
+    .matches(/^[6-9]\d{9}$/, { message: "Enter a valid 10-digit mobile number.", excludeEmptyString: true }),
   landmark: Yup.string().trim(),
   note: Yup.string().trim(),
 });
@@ -50,6 +55,7 @@ function showFieldErrors(err, setErrors, setTouched) {
     address: true,
     pin: true,
     district: true,
+    phone: true,
     landmark: true,
     note: true,
   };
@@ -71,6 +77,7 @@ function trimmedOrder(values) {
     address: values.address.trim(),
     pin: values.pin.trim(),
     district: values.district.trim(),
+    phone: values.phone.trim(),
     landmark: values.landmark.trim(),
     note: values.note.trim(),
   };
@@ -84,8 +91,17 @@ function rememberOrder(values) {
   sessionStorage.setItem("order-address", trimmed.address);
   sessionStorage.setItem("order-pin", trimmed.pin);
   sessionStorage.setItem("order-district", trimmed.district);
+  sessionStorage.setItem("order-phone", trimmed.phone);
   sessionStorage.setItem("order-landmark", trimmed.landmark);
+  sessionStorage.setItem("order-note", trimmed.note);
   return trimmed;
+}
+
+function phoneDigits(value) {
+  let digits = String(value).replace(/\D/g, "");
+  if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
+  if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits.slice(0, 10);
 }
 
 function WhatsAppOrderLink({ number, message, onMissing }) {
@@ -95,19 +111,21 @@ function WhatsAppOrderLink({ number, message, onMissing }) {
     : "#";
 
   function onClick(event) {
+    event.preventDefault();
     try {
       orderSchema.validateSync(values, { abortEarly: false });
     } catch (err) {
-      event.preventDefault();
       showFieldErrors(err, setErrors, setTouched);
       return;
     }
     if (!number) {
-      event.preventDefault();
       onMissing();
       return;
     }
     rememberOrder(values);
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.location.href = href;
+    else window.location.assign(href);
   }
 
   return (
@@ -166,9 +184,15 @@ export function Order() {
       "",
       ...lines,
       "",
-      `Estimated total: ${rupees(total)}`,
+      `Spices: ${rupees(total)}`,
+      `Delivery: ${deliveryCharge ? rupees(deliveryCharge) : "Free"}`,
+      `Estimated total: ${rupees(grandTotal)}`,
+      "",
+      settings?.paymentNote || "Pay by UPI or cash. We confirm the payment with you on WhatsApp.",
+      settings?.deliveryNote || "",
       "",
       `Name: ${values.name}`,
+      `Phone: ${values.phone}`,
       `Door number: ${values.door}`,
       `City: ${values.city}`,
       `Complete address: ${values.address}`,
@@ -177,18 +201,21 @@ export function Order() {
       values.landmark ? `Landmark: ${values.landmark}` : "",
       values.note ? `Note: ${values.note}` : "",
       "",
-      "Please confirm the total and delivery.",
+      "Please confirm the total, delivery, and payment.",
     ]
       .filter(Boolean)
       .join("\n");
   }
 
   const whatsappNumber = settings?.whatsappNumber || "";
+  const deliveryCharge = Number(settings?.deliveryCharge) || 0;
+  const grandTotal = total + deliveryCharge;
 
   if (items.length === 0) {
     return (
       <main className="mx-auto max-w-3xl px-5 py-16">
         <h1 className="font-serif text-5xl">Your order is empty</h1>
+        <p className="mt-3 text-ink/75">Add spices from the shop, then send the order on WhatsApp.</p>
         <Link to="/shop" className="mt-6 inline-block rounded-full bg-saffron px-5 py-3 text-sm font-medium text-white">
           Shop spices
         </Link>
@@ -200,7 +227,9 @@ export function Order() {
     <main className="mx-auto grid max-w-6xl gap-8 px-5 py-10 lg:grid-cols-[1.1fr_0.9fr]">
       <section>
         <h1 className="font-serif text-5xl">Review the order</h1>
-        <p className="mt-3 text-ink/75">These are the prices from when you added each pack. The shop confirms the final total on WhatsApp.</p>
+        <p className="mt-3 text-ink/75">
+          Spice prices are from when you added each pack. Delivery is added on the right. Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. {settings?.paymentNote}
+        </p>
         <div className="mt-6 space-y-3">
           {items.map((item) => (
             <div key={item.key} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card p-4">
@@ -218,9 +247,7 @@ export function Order() {
                 <button type="button" className="h-8 w-8 rounded-full border border-line" onClick={() => setQty(item.key, item.qty + 1)}>
                   +
                 </button>
-                <button type="button" onClick={() => remove(item.key)} className="text-sm text-maroon">
-                  Remove
-                </button>
+                <CrossButton label={`Remove ${item.name}`} tone="maroon" onClick={() => remove(item.key)} />
               </div>
             </div>
           ))}
@@ -234,19 +261,41 @@ export function Order() {
           address: read("order-address"),
           pin: read("order-pin"),
           district: read("order-district"),
+          phone: read("order-phone"),
           landmark: read("order-landmark"),
-          note: "",
+          note: read("order-note"),
         }}
         validationSchema={orderSchema}
         onSubmit={() => {}}
       >
         <Form noValidate className="h-fit rounded-[2rem] border border-line bg-card p-6">
-          <div className="flex items-center justify-between">
-            <span>Estimated total</span>
-            <span className="font-serif text-3xl">{rupees(total)}</span>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span>Spices</span>
+              <span>{rupees(total)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Delivery</span>
+              <span>{deliveryCharge ? rupees(deliveryCharge) : "Free"}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span>Estimated total</span>
+              <span className="font-serif text-3xl">{rupees(grandTotal)}</span>
+            </div>
           </div>
+          {settings?.deliveryNote && <p className="mt-3 text-sm text-ink/70">{settings.deliveryNote}</p>}
           <div className="mt-5">
             <OrderField name="name" label="Name" autoComplete="name" flagNumbers />
+          </div>
+          <div className="mt-3">
+            <OrderField
+              name="phone"
+              label="Phone number"
+              inputMode="numeric"
+              autoComplete="tel"
+              maxLength={16}
+              onValue={phoneDigits}
+            />
           </div>
           <div className="mt-3">
             <OrderField name="door" label="Door number" autoComplete="address-line1" />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCatalog } from "../catalog";
 import { SpiceCard } from "../components/SpiceCard";
+import { rupees } from "../format";
 
 export function Shop() {
   const { products, settings, status } = useCatalog();
@@ -18,7 +19,8 @@ export function Shop() {
       <p className="text-xs tracking-[0.2em] text-saffron uppercase">The shop</p>
       <h1 className="mt-2 font-serif text-5xl">Every spice, four pack sizes</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        Tap a weight to see its price. Each price is today’s auction rate for that pack.
+        Tap a weight to see its price. Each price is today’s auction rate for that pack. Delivery is{" "}
+        {Number(settings?.deliveryCharge) ? `${rupees(settings.deliveryCharge)}.` : "free."}
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         {categories.map((item) => (

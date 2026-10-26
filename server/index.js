@@ -110,7 +110,7 @@ function readProduct(body) {
   const description = String(body.description || "").trim();
   const rate = Number(body.ratePerKg);
   if (name.length < 2 || name.length > 80) return { error: "Enter a spice name" };
-  if (!category || category.length > 40) return { error: "Enter a category, such as Ground or Whole" };
+  if (!category || category.length > 40) return { error: "Enter a category, such as Whole" };
   if (description.length > 500) return { error: "Keep the description under 500 characters" };
   if (!Number.isFinite(rate)) return { error: "Enter the auction rate per kg in rupees" };
   const ratePerKg = Math.round(rate);
@@ -122,6 +122,7 @@ function readProduct(body) {
       description,
       ratePerKg,
       inStock: body.inStock !== false && body.inStock !== 0,
+      bestSeller: body.bestSeller === true || body.bestSeller === 1,
     },
   };
 }
@@ -135,7 +136,19 @@ function readSettings(body) {
   if (whatsappNumber && (whatsappNumber.length < 10 || whatsappNumber.length > 15)) {
     return { error: "Enter the WhatsApp number with country code, digits only. Example: 9198XXXXXXX" };
   }
-  return { value: { brandName, tagline, whatsappNumber } };
+  const phone = String(body.phone || "").replace(/\D/g, "");
+  if (phone && (phone.length < 10 || phone.length > 15)) return { error: "Enter the phone number with country code" };
+  const email = String(body.email || "").trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email" };
+  const deliveryCharge = Math.round(Number(body.deliveryCharge));
+  if (!Number.isFinite(deliveryCharge) || deliveryCharge < 0 || deliveryCharge > 100000) {
+    return { error: "Enter a delivery charge of ₹0 or more" };
+  }
+  const deliveryNote = String(body.deliveryNote || "").trim();
+  const paymentNote = String(body.paymentNote || "").trim();
+  if (deliveryNote.length > 240) return { error: "Keep the delivery note under 240 characters" };
+  if (paymentNote.length > 240) return { error: "Keep the payment note under 240 characters" };
+  return { value: { brandName, tagline, whatsappNumber, phone, email, deliveryCharge, deliveryNote, paymentNote } };
 }
 
 function imageFile(url) {
@@ -176,17 +189,23 @@ app.get("/api/products/:id", (req, res) => {
   res.json(toProduct(row));
 });
 
-app.post("/api/admin/login", (req, res) => {
+function readAdmin() {
+  return db.prepare("SELECT username, salt, password_hash FROM admin WHERE id = 1").get();
+}
+
+function loginAdmin(req, res) {
   const ip = clientIp(req);
   if (tooManyAttempts(ip)) {
     res.status(429).json({ error: "Too many tries. Wait a few minutes and try again." });
     return;
   }
-  const admin = db.prepare("SELECT salt, password_hash FROM admin WHERE id = 1").get();
+  const admin = readAdmin();
+  const username = String(req.body.username || "admin").trim().toLowerCase();
   const password = String(req.body.password || "");
-  if (!admin || !verifyPassword(password, admin.salt, admin.password_hash)) {
+  const nameOk = admin && username === String(admin.username || "admin").trim().toLowerCase();
+  if (!nameOk || !verifyPassword(password, admin.salt, admin.password_hash)) {
     recordAttempt(ip);
-    res.status(401).json({ error: "That password is not right" });
+    res.status(401).json({ error: "That sign-in is not right" });
     return;
   }
   attempts.delete(ip);
@@ -198,18 +217,27 @@ app.post("/api/admin/login", (req, res) => {
     secure: process.env.NODE_ENV === "production",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-  res.json({ ok: true });
-});
+  res.json({ ok: true, username: admin.username || "admin" });
+}
 
-app.post("/api/admin/logout", (req, res) => {
+function logoutAdmin(req, res) {
   if (req.cookies.sid) db.prepare("DELETE FROM sessions WHERE token = ?").run(req.cookies.sid);
   res.clearCookie("sid");
   res.json({ ok: true });
-});
+}
 
-app.get("/api/admin/me", requireAdmin, (req, res) => {
-  res.json({ ok: true });
-});
+function currentAdmin(req, res) {
+  const admin = readAdmin();
+  res.json({ ok: true, username: admin?.username || "admin" });
+}
+
+app.post("/api/auth/login", loginAdmin);
+app.post("/api/auth/logout", logoutAdmin);
+app.get("/api/auth/me", requireAdmin, currentAdmin);
+
+app.post("/api/admin/login", loginAdmin);
+app.post("/api/admin/logout", logoutAdmin);
+app.get("/api/admin/me", requireAdmin, currentAdmin);
 
 app.put("/api/admin/settings", requireAdmin, (req, res) => {
   const parsed = readSettings(req.body);
@@ -242,13 +270,13 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  const { name, category, description, ratePerKg, inStock } = parsed.value;
+  const { name, category, description, ratePerKg, inStock, bestSeller } = parsed.value;
   const sort = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM products").get().n || 0) + 1;
   const id = uniqueId(name);
   const now = new Date().toISOString();
   db.prepare(
-    "INSERT INTO products (id, name, category, description, rate_per_kg, image, in_stock, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)",
-  ).run(id, name, category, description, ratePerKg, inStock ? 1 : 0, sort, now);
+    "INSERT INTO products (id, name, category, description, rate_per_kg, image, in_stock, best_seller, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)",
+  ).run(id, name, category, description, ratePerKg, inStock ? 1 : 0, bestSeller ? 1 : 0, sort, now);
   res.status(201).json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
@@ -263,10 +291,10 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  const { name, category, description, ratePerKg, inStock } = parsed.value;
+  const { name, category, description, ratePerKg, inStock, bestSeller } = parsed.value;
   db.prepare(
-    "UPDATE products SET name = ?, category = ?, description = ?, rate_per_kg = ?, in_stock = ?, updated_at = ? WHERE id = ?",
-  ).run(name, category, description, ratePerKg, inStock ? 1 : 0, new Date().toISOString(), req.params.id);
+    "UPDATE products SET name = ?, category = ?, description = ?, rate_per_kg = ?, in_stock = ?, best_seller = ?, updated_at = ? WHERE id = ?",
+  ).run(name, category, description, ratePerKg, inStock ? 1 : 0, bestSeller ? 1 : 0, new Date().toISOString(), req.params.id);
   res.json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
 });
 
