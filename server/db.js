@@ -142,16 +142,65 @@ function setting(key, fallback) {
   return row.value;
 }
 
-const seeds = [
-  ["kashmiri-chilli", "Kashmiri chilli", "Whole", "Bright red and mild. The colour in gravies, marinades, and Sunday chicken.", 1200],
-  ["turmeric", "Turmeric powder", "Whole", "Golden and earthy, for dal, rice, and haldi doodh.", 480],
-  ["coriander", "Coriander powder", "Whole", "Warm and citrusy. A quiet base for almost every masala.", 360],
-  ["garam-masala", "Garam masala", "Whole", "A roasted house blend, added at the end so the aroma stays.", 880],
-  ["cumin", "Cumin seeds", "Whole", "Nutty jeera for tadka. Crush a pinch if you want it louder.", 720],
-  ["black-pepper", "Black pepper", "Whole", "Whole peppercorns with a sharp, piney heat.", 980],
-  ["cardamom", "Green cardamom", "Whole", "Fragrant pods for chai, kheer, and biryani.", 3600],
-  ["mustard", "Mustard seeds", "Whole", "Small black seeds that crackle as soon as they meet hot oil.", 240],
+const defaults = [
+  ["cardamom", "Cardamom", "A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking.", 3600, 1],
+  ["clove", "Clove", "A warm and aromatic spice with a strong, slightly sweet flavour, widely used in cooking and beverages.", 880, 1],
+  ["cinnamon-stick", "Cinnamon Stick", "A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks.", 480, 0],
+  ["black-pepper", "Black Pepper", "A classic spice with a sharp, pungent flavour that enhances the taste of a wide variety of dishes.", 980, 0],
+  ["star-anise", "Star Anise", "A star-shaped spice with a sweet, licorice-like aroma, often used in biryanis, curries, and beverages.", 360, 0],
+  ["mace", "Mace", "The delicate, aromatic outer covering of nutmeg, known for its warm and slightly sweet flavour.", 1200, 0],
+  ["nutmeg", "Nutmeg", "A warm, fragrant spice with a slightly sweet and nutty flavour, perfect for sweets, curries, and beverages.", 1300, 0],
+  ["bay-leaf", "Bay Leaf", "An aromatic leaf that adds a subtle, earthy fragrance and flavour to rice dishes, curries, and gravies.", 700, 0],
 ];
+
+const previousPhotoIds = {
+  cardamom: ["cardamom", "kashmiri-chilli"],
+  clove: ["clove", "garam-masala"],
+  "cinnamon-stick": ["cinnamon-stick", "turmeric"],
+  "black-pepper": ["black-pepper", "cumin"],
+  "star-anise": ["star-anise", "coriander"],
+  mace: ["mace"],
+  nutmeg: ["nutmeg"],
+  "bay-leaf": ["bay-leaf"],
+};
+
+const obsoleteIds = ["kashmiri-chilli", "turmeric", "coriander", "garam-masala", "cumin", "mustard"];
+
+function savedPhoto(imageById, id) {
+  for (const previousId of previousPhotoIds[id] || []) {
+    const image = imageById.get(previousId);
+    if (!image || !image.startsWith("/uploads/")) continue;
+    const file = path.join(uploadsDir, path.basename(image));
+    if (fs.existsSync(file)) return image;
+  }
+  return null;
+}
+
+function insertDefaultSpices(imageById = new Map()) {
+  const insert = db.prepare(
+    `INSERT INTO products (
+      id, name, category, description, rate_per_kg, image, in_stock, best_seller, sort_order, updated_at,
+      price_100, price_250, price_500, price_1000
+    ) VALUES (?, ?, 'Whole', ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`,
+  );
+  const now = new Date().toISOString();
+  defaults.forEach(([id, name, description, rate, bestSeller], index) => {
+    insert.run(
+      id,
+      name,
+      description,
+      rate,
+      savedPhoto(imageById, id),
+      bestSeller,
+      index + 1,
+      now,
+      priceFor(rate, 100),
+      priceFor(rate, 250),
+      priceFor(rate, 500),
+      rate,
+    );
+  });
+}
 
 db.prepare(
   `UPDATE products SET
@@ -162,13 +211,19 @@ db.prepare(
   WHERE price_100 = 0 AND price_250 = 0 AND price_500 = 0 AND price_1000 = 0 AND rate_per_kg > 0`,
 ).run();
 
-const count = db.prepare("SELECT COUNT(*) AS n FROM products").get().n;
-if (count === 0) {
-  const insert = db.prepare(
-    "INSERT INTO products (id, name, category, description, rate_per_kg, image, in_stock, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, NULL, 1, ?, ?)",
-  );
-  const now = new Date().toISOString();
-  seeds.forEach((row, index) => insert.run(...row, index + 1, now));
+const catalogVersion = db.prepare("SELECT value FROM settings WHERE key = 'catalog_version'").get()?.value;
+const productCount = db.prepare("SELECT COUNT(*) AS n FROM products").get().n;
+const obsoleteCount = db
+  .prepare(`SELECT COUNT(*) AS n FROM products WHERE id IN (${obsoleteIds.map(() => "?").join(", ")})`)
+  .get(...obsoleteIds).n;
+
+if (catalogVersion !== "2" && (productCount === 0 || obsoleteCount > 0)) {
+  const imageById = new Map(db.prepare("SELECT id, image FROM products").all().map((row) => [row.id, row.image]));
+  db.prepare("DELETE FROM products").run();
+  insertDefaultSpices(imageById);
+  db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
+} else if (catalogVersion !== "2") {
+  db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
 }
 
 setting("brand_name", "Shivdurga Kerala Spices");

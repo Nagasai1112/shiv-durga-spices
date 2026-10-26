@@ -1,12 +1,12 @@
 const tones = {
-  "kashmiri-chilli": "#b55245",
-  turmeric: "#c4a15a",
-  coriander: "#b89a74",
-  "garam-masala": "#7a5340",
-  cumin: "#a06b45",
-  "black-pepper": "#3c3a32",
   cardamom: "#6d8a52",
-  mustard: "#b4834e",
+  clove: "#7a5340",
+  "cinnamon-stick": "#a06b45",
+  "black-pepper": "#3c3a32",
+  "star-anise": "#8a6a4a",
+  mace: "#c4a15a",
+  nutmeg: "#b4834e",
+  "bay-leaf": "#4f6b45",
 };
 
 function moundColor(id) {
@@ -40,7 +40,7 @@ export function SpiceVisual({ product, className = "" }) {
 
 export function HeroArt() {
   return (
-    <svg viewBox="0 0 640 520" className="h-full w-full" role="img" aria-label="Bowls of turmeric, chilli, cardamom, and cumin">
+    <svg viewBox="0 0 640 520" className="h-full w-full" role="img" aria-label="Bowls of whole spices">
       <rect width="640" height="520" rx="28" fill="#f3efe6" />
       <path d="M40 430c80-30 480-30 560 0" fill="none" stroke="#ddd4c4" strokeWidth="18" />
       <Bowl x="170" y="150" fill="#c4a15a" />

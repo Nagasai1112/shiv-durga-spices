@@ -52,7 +52,15 @@ export function Home() {
       {bestSellers.length > 0 && (
         <section className="mx-auto max-w-6xl px-5 pt-14">
           <h2 className="text-center font-serif text-4xl">Our Best Sellers</h2>
-          <div className="mx-auto mt-8 grid max-w-sm gap-5">
+          <div
+            className={`mt-8 grid gap-5 ${
+              bestSellers.length === 1
+                ? "mx-auto max-w-sm"
+                : bestSellers.length === 2
+                  ? "sm:grid-cols-2"
+                  : "sm:grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
             {bestSellers.map((product) => (
               <SpiceCard key={product.id} product={product} badge="Best seller" />
             ))}

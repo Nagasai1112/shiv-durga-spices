@@ -1,45 +1,46 @@
-# Shiv Durga Spices
+# Shivdurga Kerala Spices
 
-A small shop website for Shiv Durga Spices. Customers browse Kerala spices, pick a pack size, and send the order on WhatsApp. The shop confirms the total in the chat. There is no online payment.
+A shop website for Shivdurga Kerala Spices in Thiruvananthapuram, Kerala. Customers browse whole spices, pick a pack, and send the order on WhatsApp. The shop confirms the total in the chat. There is no online payment and no customer account.
 
-The shopkeeper updates the auction rate, photos, brand name, tagline, and WhatsApp number from an admin page.
+The shopkeeper changes pack prices, photos, descriptions, reviews, delivery charges, shop details, and the password from the admin pages. Sign in is at `/sign-in`. That page is not linked from the header or the footer.
 
 ## What a customer can do
 
-The site works on a computer and on a phone. Pages stack on a small screen.
+The site works on a computer and on a phone. Layout uses Tailwind CSS utility classes, so sections sit in columns on a wide screen and stack on a small one.
 
 ### Home
 
-- A scrolling line under the header: bulk orders are available, and international orders are welcome. Tapping it opens WhatsApp when the shop number is set. The line pauses when the pointer rests on it.
-- Brand name and tagline, both editable from admin.
-- A product carousel with the first spices, arrows, dots, and a pause when the pointer is over it.
-- Three featured spices. Each one shows 100 g, 250 g, 500 g, and 1 kg. Tap a weight and the amount above the buttons changes.
+- A scrolling line under the header. Tapping it opens WhatsApp when the shop number is set. The line pauses when the pointer rests on it.
+- The brand name and tagline. Both can be edited in admin.
+- A product carousel.
+- Our Best Sellers. Marked spices sit side by side on a wide screen. On a phone they stack.
+- Featured spices. Each card shows the description, then 100 g, 250 g, 500 g, and 1 kg. Tap a weight and that pack’s price changes.
 - Three steps: choose a spice, choose a pack, send the order on WhatsApp.
-- A customer-review carousel. Each card is a small phone screenshot, with stars, the customer’s words, and a label such as Verified customer. On a wide screen four cards show at once. It moves about every three seconds, the arrows step through the cards, and it pauses when the pointer is over it.
-- An Our story section about spices from Kerala.
+- A customer-review carousel. On a wide screen several cards show at once. It pauses when the pointer is over it.
+- An Our story section.
 
 ### Shop
 
-- Every spice that is in stock.
-- Category filters. **All** shows everything. The other labels, such as Ground, Whole, and Blends, come from the category typed in admin. They are not fixed in the code.
-- Each card shows 100 g, 250 g, 500 g, and 1 kg. Tap a weight and the amount changes.
+- Search from the header, or from the search box on the shop page. It matches the spice name and the description.
+- Category filters. **All** shows everything. Other labels come from the category typed in admin.
+- Each card shows the description and the four pack prices.
 
 ### Spice page
 
-- Photo, category, description, and today’s auction rate per kg.
-- One amount for the selected pack. Tap 100 g, 250 g, 500 g, or 1 kg and that amount changes.
-- Quantity buttons and an add-to-order button.
-- The order drawer shows the running list and total.
+- Photo, category, description, and the price of the selected pack.
+- Pack buttons for 100 g, 250 g, 500 g, and 1 kg.
+- An add-to-order button. The order drawer shows the running list, the delivery charge, and the estimated total.
 
 ### Order
 
-The cart is kept in the browser. Review shows each pack, quantity, and the price from the moment it was added.
+The cart stays in the browser. Each line keeps the pack price from the moment it was added.
 
 The form uses Formik and Yup.
 
 | Field | Required | Rule |
 | --- | --- | --- |
 | Name | Yes | Letters only. Numbers are rejected. |
+| Phone | Yes | A 10-digit Indian mobile number, starting with 6, 7, 8, or 9. |
 | Door number | Yes | Must include a number. |
 | City | Yes | Letters only. Numbers are rejected. |
 | Complete address | Yes | |
@@ -48,27 +49,48 @@ The form uses Formik and Yup.
 | Landmark | No | |
 | Note for the shop | No | |
 
-Empty required fields, a short PIN, or a number in the name or city keep the WhatsApp chat closed and show the message under that field. Name, door number, city, address, PIN, district, and landmark are remembered for the rest of the browser session. The note is not.
+**Review and send on WhatsApp** opens `https://wa.me/` with the list, the delivery charge, the estimated total, and the address. The shop’s WhatsApp number has to be saved in admin first. The website does not keep a copy of the order.
 
-**Order on WhatsApp** opens `https://wa.me/` in a new tab with the list, estimated total, and the address filled in. Landmark and the note are included only when the customer typed them. The shop’s WhatsApp number has to be saved in admin first.
+Delivery is one flat charge for the whole order. Up to 5 kg, including a small pack, it is ₹90. Above 5 kg it is ₹60. The cutoff and both amounts can be changed in Shop details.
 
-### Header and logo
+The phone’s back button closes the order drawer and stays on the site. **Shop more** closes the drawer and opens the shop, with the spices already chosen still in the cart.
 
-The round logo in the header is the original artwork. A circular crop hides the white corners. The browser tab uses the same circular icon.
+### Header and footer
+
+The round logo and the trade name go back to the home page. The footer lists the address as Thiruvananthapuram, Kerala, plus the shop phone and email.
 
 ## What the shopkeeper can do
 
-Open `/admin`. Customers are not linked here from the shop, but the page exists at that address.
+Open `/sign-in`. After signing in, the admin home links to spices, reviews, shop details, and the password.
 
-- Sign in with the admin password. Eight wrong tries from the same address lock the form for about ten minutes.
-- Change the brand name, tagline, and WhatsApp number. The number is digits only, with the country code, for example `9198XXXXXXX`.
-- Change the admin password. The new password needs at least 6 characters.
-- For each spice: name, category, description, in-stock switch, and the auction rate per kg. Saving the rate recalculates 100 g, 250 g, 500 g, and 1 kg.
-- Upload a JPG, PNG, or WebP photo up to 5 MB. The previous photo is replaced.
-- Add a spice or remove one.
-- Add, edit, or remove a customer review: the words, a label, 1 to 5 stars, and a WhatsApp screenshot. Reviews show on the home page.
+- Eight wrong tries from the same address lock the form for about ten minutes.
+- Change the brand name, tagline, WhatsApp number, phone, email, delivery note, and payment note.
+- Set the delivery cutoff in kg, the flat charge up to that weight, and the flat charge above it.
+- For each spice: name, category, description, in-stock switch, best-seller switch, and a separate price for 100 g, 250 g, 500 g, and 1 kg.
+- Upload a JPG, PNG, or WebP photo up to 5 MB.
+- Add a spice or remove one. Removing asks for confirmation in a dialog on the page.
+- Add, edit, or remove a customer review.
 
-Pack price is `rate per kg × grams / 1000`, rounded to the nearest rupee.
+New spices added in admin appear in the shop with the ones already there. The starter list is only what a new database begins with.
+
+## Starter spices
+
+The first time the server runs, and when an older database still has the previous sample spices, the shop is filled with these whole spices:
+
+| Spice | Description |
+| --- | --- |
+| Cardamom | A fragrant spice with a sweet, refreshing aroma, commonly used in sweets, tea, and cooking. |
+| Clove | A warm and aromatic spice with a strong, slightly sweet flavour, widely used in cooking and beverages. |
+| Cinnamon Stick | A naturally sweet and aromatic spice used to add warmth and flavour to curries, desserts, and drinks. |
+| Black Pepper | A classic spice with a sharp, pungent flavour that enhances the taste of a wide variety of dishes. |
+| Star Anise | A star-shaped spice with a sweet, licorice-like aroma, often used in biryanis, curries, and beverages. |
+| Mace | The delicate, aromatic outer covering of nutmeg, known for its warm and slightly sweet flavour. |
+| Nutmeg | A warm, fragrant spice with a slightly sweet and nutty flavour, perfect for sweets, curries, and beverages. |
+| Bay Leaf | An aromatic leaf that adds a subtle, earthy fragrance and flavour to rice dishes, curries, and gravies. |
+
+Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Photos are empty until a photo is uploaded, except where a photo was already saved for that spice.
+
+The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Kerala**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
 
 ## How the project is put together
 
@@ -77,7 +99,9 @@ Pack price is `rate per kg × grams / 1000`, rounded to the nearest rupee.
 - In development, Vite serves the site on port 5173 and forwards `/api` and `/uploads` to the API on port 4000.
 - In production, `npm start` serves the built site and the API from the same Node process.
 
-The database, uploaded photos, and `.env` are not part of the git history. The first time the server runs on an empty database it adds sample spices, the brand name **Shiv Durga Spices**, the tagline **Taste and trust, straight from Kerala**, and the first customer reviews. The WhatsApp number starts empty. Review screenshots that ship with the site live in `client/public/reviews`. Screenshots added later from admin are stored in `server/uploads`.
+The database, uploaded photos, and `.env` are not part of the git history. Review screenshots that ship with the site live in `client/public/reviews`. Screenshots added later from admin are stored in `server/uploads`.
+
+A free host with no lasting disk starts again from the starter spices. Prices, photos, and the WhatsApp number typed into the live admin need to be entered again after that disk is cleared.
 
 ## Run it on your computer
 
@@ -94,17 +118,25 @@ On macOS or Linux, use `cp .env.example .env` instead of `copy`.
 
 Open http://localhost:5173.
 
-Set `ADMIN_PASSWORD` in `.env` before the first start if you want a password other than the development default `shivdurga`. If the database already exists, change the password from the admin page instead. The value in `.env` is only used to create the first admin login.
+Set `ADMIN_PASSWORD` in `.env` before the first start. If the database already exists, change the password from the admin password page. The value in `.env` is only used to create the first admin login.
 
 ## Run it for real
 
+The client build needs the client development packages. A production install skips those unless they are requested.
+
 ```bash
 npm install
-npm install --prefix client
+npm install --prefix client --include=dev
 npm run build
 npm start
 ```
 
-The site and the API are then on port 4000, or on `PORT` from the environment. Set `NODE_ENV=production` so the admin sign-in cookie is only sent over HTTPS.
+The site and the API are then on port 4000, or on `PORT` from the environment. Set `NODE_ENV=production` so the admin sign-in cookie is only sent over HTTPS. Set `NODE_VERSION=22` on the host.
 
-Point the domain at this Node process. The temporary public preview link used during development is not part of the app and stops when the computer sleeps.
+On Render, use this build command:
+
+```bash
+npm install && npm install --prefix client --include=dev && npm run build
+```
+
+Use `npm run start` as the start command.
