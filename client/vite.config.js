@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    allowedHosts: [".trycloudflare.com"],
+    host: true,
+    allowedHosts: [".trycloudflare.com", "lvh.me", ".lvh.me"],
     proxy: {
       "/api": "http://localhost:4000",
       "/uploads": "http://localhost:4000",

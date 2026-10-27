@@ -96,7 +96,7 @@ export function UnboxingMarquee() {
 export function HomeMarquee() {
   const { settings } = useCatalog();
   const reduceMotion = usePrefersReducedMotion();
-  const number = settings?.whatsappNumber || "";
+  const number = settings?.whatsappNumber || settings?.phone || "";
   const href = number
     ? `https://wa.me/${number}?text=${encodeURIComponent("Hello, I would like to ask about a bulk or international order.")}`
     : "/order";

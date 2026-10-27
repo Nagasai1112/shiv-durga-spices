@@ -2,26 +2,29 @@ import { useEffect, useRef } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../cart";
 import { useCatalog } from "../catalog";
-import { BRAND, deliveryFor, orderGrams, rupees } from "../format";
+import { BRAND, activeOffer, deliveryFor, discountFor, heldGrams, orderGrams, rupees } from "../format";
 import { CrossButton } from "./CrossButton";
 import { HomeLink, StoryLink } from "./SiteLinks";
 
 const links = [
   ["/", "Home"],
   ["/shop", "Shop"],
+  ["/offers", "Offers"],
   ["/#story", "Our story"],
   ["/reviews", "Reviews"],
   ["/track", "Track"],
 ];
 
 export function Header() {
-  const { settings } = useCatalog();
-  const { items, count, total, open, setOpen, setQty, remove } = useCart();
+  const { settings, offers, products } = useCatalog();
+  const { items, count, total, open, setOpen, notice, setQty, remove } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const brand = settings?.brandName || BRAND;
+  const offer = activeOffer(offers);
+  const discount = discountFor(total, offer);
   const deliveryCharge = deliveryFor(orderGrams(items), settings);
-  const grandTotal = total + deliveryCharge;
+  const grandTotal = total - discount + deliveryCharge;
   const cartInHistory = Boolean(location.state?.cart);
   const skipHistory = useRef(false);
   const wasOpen = useRef(open);
@@ -160,15 +163,33 @@ export function Header() {
               <CrossButton label="Close" onClick={closeCart} />
             </div>
             <div className="flex-1 space-y-4 overflow-auto px-5 py-4">
+              {offer && items.length > 0 && (
+                <p className="rounded-2xl bg-leaf/10 px-4 py-3 text-sm text-leaf">
+                  {offer.title} is on. {offer.percent}% off every spice.
+                </p>
+              )}
+              {notice && <p className="rounded-2xl bg-[#f8efe9] px-4 py-3 text-sm text-maroon">{notice}</p>}
               {items.length === 0 && <p className="text-ink/70">The order is empty. Add a spice and a pack size.</p>}
-              {items.map((item) => (
+              {items.map((item) => {
+                const line = item.unitPrice * item.qty;
+                const lineOff = offer ? Math.round((line * offer.percent) / 100) : 0;
+                const product = products.find((spice) => spice.id === item.productId);
+                const have = Number(product?.stockGrams);
+                const more = !Number.isFinite(have) || heldGrams(items, item.productId) + Number(item.grams) <= have;
+                return (
                 <div key={item.key} className="rounded-2xl border border-line bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">{item.name}</p>
                       <p className="text-sm text-ink/70">
                         {item.label} · {rupees(item.unitPrice)}
+                        {item.qty > 1 ? ` × ${item.qty}` : ""}
                       </p>
+                      {lineOff > 0 && (
+                        <p className="text-sm text-leaf">
+                          {offer.percent}% off · {rupees(line - lineOff)}
+                        </p>
+                      )}
                     </div>
                     <CrossButton label={`Remove ${item.name}`} tone="maroon" onClick={() => remove(item.key)} />
                   </div>
@@ -177,12 +198,14 @@ export function Header() {
                       −
                     </button>
                     <span>{item.qty}</span>
-                    <button type="button" className="h-8 w-8 rounded-full border border-line" onClick={() => setQty(item.key, item.qty + 1)}>
+                    <button type="button" disabled={!more} className="h-8 w-8 rounded-full border border-line disabled:opacity-40" onClick={() => setQty(item.key, item.qty + 1)}>
                       +
                     </button>
+                    {!more && <span className="text-xs text-maroon">Sold out</span>}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="border-t border-line px-5 py-4">
               {items.length > 0 && (
@@ -191,6 +214,14 @@ export function Header() {
                     <span>Spices</span>
                     <span>{rupees(total)}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex items-center justify-between text-leaf">
+                      <span>
+                        {offer.title} ({offer.percent}% off)
+                      </span>
+                      <span>-{rupees(discount)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span>Delivery</span>
                     <span>{deliveryCharge ? rupees(deliveryCharge) : "Free"}</span>

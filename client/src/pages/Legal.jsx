@@ -109,7 +109,7 @@ export function Contact() {
   const brand = settings?.brandName || BRAND;
   const phone = settings?.phone || "917672091892";
   const email = settings?.email || "shivdurgaspices@gmail.com";
-  const whatsapp = settings?.whatsappNumber || "";
+  const whatsapp = settings?.whatsappNumber || settings?.phone || "";
 
   return (
     <Policy title="Contact">

@@ -13,6 +13,7 @@ export function AddSpicePage() {
     category: "Whole",
     description: "",
     prices: { 100: "", 250: "", 500: "", 1000: "" },
+    costPerKg: "",
     inStock: true,
     bestSeller: false,
   };
@@ -37,6 +38,7 @@ export function AddSpicePage() {
             500: Number(form.prices[500]),
             1000: Number(form.prices[1000]),
           },
+          costPerKg: form.costPerKg === "" ? 0 : Number(form.costPerKg),
         }),
       });
       await reload();
@@ -50,7 +52,7 @@ export function AddSpicePage() {
     <section>
       <h1 className="font-serif text-5xl">Add a spice</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        This page only adds a new spice. Type the price of each pack yourself. To change one that is already in the shop, open Spices.
+        This page only adds a new spice. Set the selling price of each pack, and the buying price you paid today. To change one that is already in the shop, open Spices.
       </p>
       <form onSubmit={create} className="mt-6 rounded-[2rem] border border-line bg-card p-5">
         <div className="grid gap-3 md:grid-cols-2">
@@ -82,7 +84,9 @@ export function AddSpicePage() {
           </label>
           <PackPrices
             prices={form.prices}
+            costPerKg={form.costPerKg}
             onChange={(grams, value) => setForm({ ...form, prices: { ...form.prices, [grams]: value } })}
+            onCost={(value) => setForm({ ...form, costPerKg: value })}
           />
         </div>
         {error && <p className="mt-3 text-sm text-maroon">{error}</p>}

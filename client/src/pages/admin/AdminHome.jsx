@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { useCatalog } from "../../catalog";
 
 const cards = [
+  ["/admin/orders", "Orders", "Confirmed orders appear here after you add them from the link in the WhatsApp chat."],
+  ["/admin/stock", "Stock and charts", "Type the kilograms in the shop, then see what is left, which spice sold more, the busiest month, and page hits."],
+  ["/admin/offers", "Festival offers", "Set a percentage off for Onam, Diwali, or any festival. It shows on the Offers page and in the WhatsApp total."],
   ["/admin/spices", "Spice prices and photos", "Type the price of each pack, change the photo, and choose a best seller."],
   ["/admin/spices/new", "Add a spice", "Put a new spice in the shop and type a price for each pack."],
   ["/admin/reviews", "Customer reviews", "Edit the reviews that appear on the home page."],

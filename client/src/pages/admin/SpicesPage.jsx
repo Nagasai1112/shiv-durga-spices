@@ -3,22 +3,33 @@ import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
 import { useCatalog } from "../../catalog";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { CrossButton } from "../../components/CrossButton";
+import { DeleteButton } from "../../components/CrossButton";
 import { SpiceVisual } from "../../components/SpiceVisual";
 import { PACKS, rupees } from "../../format";
 import { field } from "./field";
 import { PackPrices, packPricesFrom } from "./PackPrices";
 
 export function SpicesPage() {
-  const { products, reload } = useCatalog();
+  const { reload } = useCatalog();
   const { state } = useLocation();
+  const [products, setProducts] = useState([]);
+  const [ready, setReady] = useState(false);
   const [openId, setOpenId] = useState("");
   const openedNotice = useRef(false);
+  const editorRef = useRef(null);
   const ordered = [...products].reverse();
   const open = ordered.find((product) => product.id === openId);
 
+  function loadSpices() {
+    return api("/api/admin/products").then((rows) => {
+      setProducts(rows);
+      setReady(true);
+    });
+  }
+
   useEffect(() => {
     document.title = "Spices · Admin";
+    loadSpices().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -28,16 +39,26 @@ export function SpicesPage() {
     setOpenId(newest.id);
   }, [state, products]);
 
+  useEffect(() => {
+    if (!openId) return;
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openId]);
+
   return (
     <section>
       <h1 className="font-serif text-5xl">Spice rates and photos</h1>
       <p className="mt-3 max-w-xl text-ink/75">
-        The newest spice is at the top. Open a card to change its prices, photo, or description. A smaller pack can cost more for its size, and a larger pack can cost less.
+        The newest spice is at the top. Open a card to change its selling prices, today’s buying price, photo, or description.
       </p>
       {state?.notice && <p className="mt-4 text-sm text-leaf">{state.notice}</p>}
       {open && (
-        <div className="mt-6">
-          <ProductEditor key={open.id} product={open} onSaved={reload} onClose={() => setOpenId("")} />
+        <div ref={editorRef} className="mt-6 scroll-mt-36">
+          <ProductEditor
+            key={open.id}
+            product={open}
+            onSaved={() => Promise.all([reload(), loadSpices()])}
+            onClose={() => setOpenId("")}
+          />
         </div>
       )}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -47,7 +68,10 @@ export function SpicesPage() {
             <button
               key={product.id}
               type="button"
-              onClick={() => setOpenId(product.id)}
+              onClick={() => {
+                if (product.id === openId) editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                setOpenId(product.id);
+              }}
               className={`overflow-hidden rounded-3xl border bg-card text-left ${openId === product.id ? "border-ink" : "border-line"}`}
             >
               <SpiceVisual product={product} className="aspect-[4/3] w-full" />
@@ -59,7 +83,7 @@ export function SpicesPage() {
           );
         })}
       </div>
-      {products.length === 0 && (
+      {ready && products.length === 0 && (
         <p className="mt-6 text-sm text-ink/75">
           No spices yet. <Link to="/admin/spices/new" className="text-leaf">Add a spice</Link>.
         </p>
@@ -74,7 +98,8 @@ function ProductEditor({ product, onSaved, onClose }) {
     category: product.category,
     description: product.description,
     prices: packPricesFrom(product),
-    inStock: product.inStock,
+    costPerKg: product.costPerKg ? String(product.costPerKg) : "",
+    inStock: product.listed !== undefined ? product.listed : product.inStock,
     bestSeller: Boolean(product.bestSeller),
   });
   const [message, setMessage] = useState("");
@@ -96,6 +121,7 @@ function ProductEditor({ product, onSaved, onClose }) {
         body: JSON.stringify({
           ...form,
           prices: Object.fromEntries(PACKS.map((grams) => [grams, Number(form.prices[grams])])),
+          costPerKg: form.costPerKg === "" ? 0 : Number(form.costPerKg),
         }),
       });
       setMessage("Saved. The shop is using these prices.");
@@ -165,7 +191,12 @@ function ProductEditor({ product, onSaved, onClose }) {
               className={field}
             />
           </label>
-          <PackPrices prices={form.prices} onChange={(grams, value) => set("prices", { ...form.prices, [grams]: value })} />
+          <PackPrices
+            prices={form.prices}
+            costPerKg={form.costPerKg}
+            onChange={(grams, value) => set("prices", { ...form.prices, [grams]: value })}
+            onCost={(value) => set("costPerKg", value)}
+          />
           <label className="flex items-end gap-2 pb-3 text-sm">
             <input type="checkbox" checked={form.inStock} onChange={(event) => set("inStock", event.target.checked)} />
             Available to order
@@ -184,13 +215,13 @@ function ProductEditor({ product, onSaved, onClose }) {
           <button type="button" onClick={onClose} className="rounded-full border border-line px-4 py-2 text-sm">
             Close
           </button>
-          <CrossButton label={`Remove ${product.name}`} tone="maroon" onClick={() => setConfirming(true)} />
+          <DeleteButton label={`Delete ${product.name}`} onClick={() => setConfirming(true)} />
         </div>
       </div>
       <ConfirmModal
         open={confirming}
-        title="Remove this spice?"
-        message={`${product.name} will leave the shop.`}
+        title={`Delete ${product.name}?`}
+        message="It will leave the shop, including its photo and prices."
         confirmLabel="Remove"
         onConfirm={remove}
         onCancel={() => setConfirming(false)}

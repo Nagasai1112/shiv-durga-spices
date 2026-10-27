@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../api";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { CrossButton } from "../../components/CrossButton";
+import { DeleteButton } from "../../components/CrossButton";
 import { field } from "./field";
 
 export function ReviewsPage() {
@@ -11,6 +11,7 @@ export function ReviewsPage() {
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState("");
   const openedNotice = useRef(false);
+  const editorRef = useRef(null);
   const ordered = [...reviews].reverse();
   const open = ordered.find((review) => review.id === openId);
 
@@ -32,6 +33,11 @@ export function ReviewsPage() {
     setOpenId(newest.id);
   }, [state, reviews]);
 
+  useEffect(() => {
+    if (!openId) return;
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openId]);
+
   return (
     <section>
       <h1 className="font-serif text-5xl">Customer reviews</h1>
@@ -41,7 +47,7 @@ export function ReviewsPage() {
       {state?.notice && <p className="mt-4 text-sm text-leaf">{state.notice}</p>}
       {error && <p className="mt-4 text-sm text-maroon">{error}</p>}
       {open && (
-        <div className="mt-6">
+        <div ref={editorRef} className="mt-6 scroll-mt-36">
           <ReviewEditor key={open.id} review={open} onChange={load} onClose={() => setOpenId("")} />
         </div>
       )}
@@ -50,7 +56,10 @@ export function ReviewsPage() {
           <button
             key={review.id}
             type="button"
-            onClick={() => setOpenId(review.id)}
+            onClick={() => {
+              if (review.id === openId) editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              setOpenId(review.id);
+            }}
             className={`overflow-hidden rounded-3xl border bg-card text-left ${openId === review.id ? "border-ink" : "border-line"}`}
           >
             {review.image ? (
@@ -168,12 +177,12 @@ function ReviewEditor({ review, onChange, onClose }) {
         <button type="button" onClick={onClose} className="rounded-full border border-line px-4 py-2 text-sm">
           Close
         </button>
-        <CrossButton label="Remove review" tone="maroon" onClick={() => setConfirming(true)} />
+        <DeleteButton label="Delete this review" onClick={() => setConfirming(true)} />
       </div>
       <ConfirmModal
         open={confirming}
-        title="Remove this review?"
-        message="It will leave the home page."
+        title="Delete this review?"
+        message="It will leave the home page and the reviews page."
         confirmLabel="Remove"
         onConfirm={remove}
         onCancel={() => setConfirming(false)}

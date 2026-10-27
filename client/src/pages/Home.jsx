@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useCatalog } from "../catalog";
+import { activeOffer, dayLabel } from "../format";
 import { HomeCarousel } from "../components/HomeCarousel";
 import { PurityMarquee, UnboxingMarquee } from "../components/HomeMarquee";
 import { StoryLink, scrollToStory } from "../components/SiteLinks";
@@ -9,7 +10,8 @@ import { SpiceCard } from "../components/SpiceCard";
 import { HeroSkeleton, SpiceGridSkeleton } from "../components/Skeleton";
 
 export function Home() {
-  const { products, settings, status } = useCatalog();
+  const { products, settings, offers, status } = useCatalog();
+  const offer = activeOffer(offers);
   const { hash, state } = useLocation();
   const brand = settings?.brandName || "Shivdurga Kerala Spices";
   const tagline = settings?.tagline || "Taste and trust, straight from Keralam";
@@ -44,6 +46,13 @@ export function Home() {
               Our story
             </StoryLink>
           </div>
+          {offer && (
+            <p className="mt-5 text-sm">
+              <Link to="/offers" className="text-leaf underline decoration-leaf/30 underline-offset-4">
+                {offer.title}: {offer.percent}% off spices until {dayLabel(offer.endsOn)}
+              </Link>
+            </p>
+          )}
         </div>
         {status === "loading" ? <HeroSkeleton /> : <HomeCarousel products={products} />}
       </section>

@@ -67,6 +67,20 @@ db.exec(`
     total INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'new'
   );
+  CREATE TABLE IF NOT EXISTS offers (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    percent INTEGER NOT NULL,
+    starts_on TEXT NOT NULL,
+    ends_on TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS page_hits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
 `);
 
 function ensureColumn(table, column, definition) {
@@ -78,6 +92,15 @@ function ensureColumn(table, column, definition) {
 
 ensureColumn("admin", "username", "TEXT NOT NULL DEFAULT 'admin'");
 ensureColumn("orders", "confirm_token", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "phone", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "code", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "confirmed_at", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "offer_title", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "offer_percent", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("orders", "discount", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("orders", "stock_counted", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("products", "stock_grams", "INTEGER NOT NULL DEFAULT 0");
+ensureColumn("products", "cost_per_kg", "INTEGER NOT NULL DEFAULT 0");
 const addedBestSeller = ensureColumn("products", "best_seller", "INTEGER NOT NULL DEFAULT 0");
 if (addedBestSeller) {
   db.prepare("UPDATE products SET best_seller = 1 WHERE lower(name) LIKE '%cardamom%'").run();
@@ -103,9 +126,11 @@ export function toProduct(row) {
     category: row.category,
     description: row.description,
     image: row.image,
-    inStock: Boolean(row.in_stock),
+    inStock: Boolean(row.in_stock) && Number(row.stock_grams) > 0,
+    listed: Boolean(row.in_stock),
     bestSeller: Boolean(row.best_seller),
     updatedAt: row.updated_at,
+    stockGrams: Number(row.stock_grams) || 0,
     packs: PACKS.map((grams) => ({
       grams,
       label: packLabel(grams),
@@ -134,6 +159,8 @@ export function setPassword(password) {
   ).run(salt, hash);
 }
 
+const SHOP_NUMBER = "917672091892";
+
 function setting(key, fallback) {
   const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
   if (!row) {
@@ -141,6 +168,18 @@ function setting(key, fallback) {
     return fallback;
   }
   return row.value;
+}
+
+function digits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function shopWhatsapp(phone, whatsapp) {
+  const shopPhone = digits(phone) || SHOP_NUMBER;
+  const shopWhatsapp = digits(whatsapp);
+  if (!shopWhatsapp) return shopPhone;
+  if (shopPhone.endsWith(shopWhatsapp) && shopWhatsapp.length >= 10 && shopWhatsapp.length < shopPhone.length) return shopPhone;
+  return shopWhatsapp;
 }
 
 const defaults = [
@@ -257,12 +296,17 @@ const foldedBrand = storedBrand.toLowerCase().replace(/\s+/g, "");
 if (foldedBrand === "shivdurgaspices" || foldedBrand === "shivdurgakeralaspices") {
   db.prepare("UPDATE settings SET value = ? WHERE key = 'brand_name'").run("Shivdurga Kerala Spices");
 }
-setting("whatsapp_number", "");
 setting("tagline", "Taste and trust, straight from Keralam");
 if (db.prepare("SELECT value FROM settings WHERE key = 'tagline'").get()?.value === "Taste and trust, straight from Kerala") {
   db.prepare("UPDATE settings SET value = ? WHERE key = 'tagline'").run("Taste and trust, straight from Keralam");
 }
-setting("phone", "917672091892");
+setting("phone", SHOP_NUMBER);
+setting("whatsapp_number", SHOP_NUMBER);
+const storedPhone = digits(db.prepare("SELECT value FROM settings WHERE key = 'phone'").get()?.value) || SHOP_NUMBER;
+const matchedWhatsapp = shopWhatsapp(storedPhone, db.prepare("SELECT value FROM settings WHERE key = 'whatsapp_number'").get()?.value);
+if (digits(db.prepare("SELECT value FROM settings WHERE key = 'whatsapp_number'").get()?.value) !== matchedWhatsapp) {
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'whatsapp_number'").run(matchedWhatsapp);
+}
 setting("email", "shivdurgaspices@gmail.com");
 setting("delivery_charge", "0");
 setting("delivery_limit_kg", "5");
@@ -331,11 +375,13 @@ export function toReview(row) {
 }
 
 export function getSettings() {
+  const phone = digits(setting("phone", SHOP_NUMBER)) || SHOP_NUMBER;
+  const whatsappNumber = shopWhatsapp(phone, setting("whatsapp_number", phone));
   return {
     brandName: setting("brand_name", "Shivdurga Kerala Spices"),
-    whatsappNumber: setting("whatsapp_number", ""),
+    whatsappNumber,
     tagline: setting("tagline", "Taste and trust, straight from Keralam"),
-    phone: setting("phone", "917672091892"),
+    phone,
     email: setting("email", "shivdurgaspices@gmail.com"),
     deliveryLimitKg: Number(setting("delivery_limit_kg", "5")) || 5,
     deliveryPerKgUpTo: Number(setting("delivery_per_kg_upto", "90")) || 0,

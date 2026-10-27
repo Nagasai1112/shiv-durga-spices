@@ -11,9 +11,10 @@ export function ConfirmModal({ open, title, message, confirmLabel = "Remove", on
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-title" className="font-serif text-3xl">
-          {title}
+          Are you sure?
         </h2>
-        <p className="mt-3 text-ink/75">{message}</p>
+        {title && <p className="mt-3 font-medium">{title}</p>}
+        <p className={`text-ink/75 ${title ? "mt-2" : "mt-3"}`}>{message}</p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-full border border-line px-4 py-2 text-sm">
             Cancel

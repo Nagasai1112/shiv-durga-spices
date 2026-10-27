@@ -64,7 +64,7 @@ The form uses Formik and Yup.
 | Landmark | No | |
 | Note for the shop | No | |
 
-**Review and send on WhatsApp** opens `https://wa.me/` with the list, the delivery charge, the estimated total, and the address. The shop’s WhatsApp number has to be saved in admin first. The website does not keep a copy of the order.
+**Order on WhatsApp** saves the details on the server, then opens `https://wa.me/` with the list, an order code, the delivery charge, the estimated total, the address, and a shop-only link. The shop’s WhatsApp number has to be saved in admin first. That tap does not put the order on the admin list. The shop opens the link from the WhatsApp chat and adds the order only after the customer agrees to pay. `/admin/orders` shows those confirmed orders.
 
 Delivery is one flat charge for the whole order. Up to 5 kg, including a small pack, it is ₹90. Above 5 kg it is ₹60. The cutoff and both amounts can be changed in Shop details.
 
@@ -114,7 +114,7 @@ The first time the server runs, and when an older database still has the previou
 
 Green Cardamom and Clove start as best sellers. Each pack starts with a price based on a per-kilogram rate. Replace those prices in admin. Their photos ship with the site in `client/public/spices`. A photo uploaded later from admin replaces the starter photo for that spice.
 
-The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Keralam**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts empty until it is saved in Shop details.
+The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trust, straight from Keralam**, the phone as **917672091892**, and the email as **shivdurgaspices@gmail.com**. The WhatsApp number used for orders starts as the same number as the shop phone, **917672091892**. A blank WhatsApp number is filled from that phone number when the server starts.
 
 ## How the project is put together
 

@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../cart";
-import { rupees } from "../format";
+import { gramsLabel, heldGrams, rupees } from "../format";
 import { SpiceVisual } from "./SpiceVisual";
 
 export function SpiceCard({ product, badge }) {
-  const { add } = useCart();
+  const { add, items } = useCart();
   const [grams, setGrams] = useState(product.packs[0].grams);
   const pack = product.packs.find((item) => item.grams === grams) || product.packs[0];
+  const have = Number(product.stockGrams);
+  const left = Number.isFinite(have) ? have - heldGrams(items, product.id) : Infinity;
+  const finished = !product.inStock || left < 100;
+  const packSoldOut = finished || pack.grams > left;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-3xl border border-line bg-card shadow-[0_16px_40px_rgba(42,33,24,0.05)]">
@@ -16,7 +20,7 @@ export function SpiceCard({ product, badge }) {
         {badge && (
           <span className="absolute top-3 right-3 rounded-full bg-leaf px-3 py-1 text-xs text-cream">{badge}</span>
         )}
-        {!product.inStock && (
+        {finished && (
           <span className="absolute top-3 left-3 rounded-full bg-ink px-3 py-1 text-xs text-cream">Sold out</span>
         )}
       </Link>
@@ -45,12 +49,15 @@ export function SpiceCard({ product, badge }) {
         </div>
         <button
           type="button"
-          disabled={!product.inStock}
+          disabled={packSoldOut}
           onClick={() => add(product, pack)}
           className="mt-4 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-cream disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {product.inStock ? `Add ${pack.label}` : "Sold out"}
+          {packSoldOut ? "Sold out" : `Add ${pack.label}`}
         </button>
+        {packSoldOut && left > 0 && product.inStock && (
+          <p className="mt-2 text-center text-xs text-maroon">Only {gramsLabel(left)} left</p>
+        )}
       </div>
     </article>
   );

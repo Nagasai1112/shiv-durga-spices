@@ -4,12 +4,12 @@ import { useCart } from "../cart";
 import { useCatalog } from "../catalog";
 import { SpicePageSkeleton } from "../components/Skeleton";
 import { SpiceVisual } from "../components/SpiceVisual";
-import { BRAND, rupees } from "../format";
+import { BRAND, gramsLabel, heldGrams, rupees } from "../format";
 
 export function SpicePage() {
   const { id } = useParams();
   const { products, settings, status } = useCatalog();
-  const { add } = useCart();
+  const { add, items } = useCart();
   const product = products.find((item) => item.id === id);
   const [grams, setGrams] = useState(100);
   const [qty, setQty] = useState(1);
@@ -31,6 +31,14 @@ export function SpicePage() {
   }
 
   const pack = product.packs.find((item) => item.grams === grams) || product.packs[0];
+  const have = Number(product.stockGrams);
+  const left = Number.isFinite(have) ? have - heldGrams(items, product.id) : Infinity;
+  const finished = !product.inStock || left < 100;
+  const packSoldOut = finished || pack.grams * qty > left;
+
+  function morePacks() {
+    setQty((value) => (pack.grams * (value + 1) > left ? value : value + 1));
+  }
 
   return (
     <main className="mx-auto grid max-w-6xl gap-10 px-5 py-10 lg:grid-cols-2">
@@ -66,18 +74,19 @@ export function SpicePage() {
               −
             </button>
             <span className="min-w-6 text-center">{qty}</span>
-            <button type="button" onClick={() => setQty((value) => value + 1)} aria-label="More packs">
+            <button type="button" onClick={morePacks} disabled={pack.grams * (qty + 1) > left} aria-label="More packs" className="disabled:opacity-40">
               +
             </button>
           </div>
           <button
             type="button"
-            disabled={!product.inStock}
+            disabled={packSoldOut}
             onClick={() => add(product, pack, qty)}
             className="rounded-full bg-leaf px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
           >
-            {product.inStock ? `Add ${qty} × ${pack.label}` : "Sold out"}
+            {packSoldOut ? "Sold out" : `Add ${qty} × ${pack.label}`}
           </button>
+          {packSoldOut && left > 0 && product.inStock && <p className="text-sm text-maroon">Only {gramsLabel(left)} left</p>}
         </div>
       </div>
     </main>

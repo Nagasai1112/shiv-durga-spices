@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { api } from "./api";
 import { scrollToStory } from "./components/SiteLinks";
 import { CartProvider } from "./cart";
 import { CatalogProvider } from "./catalog";
@@ -10,18 +11,42 @@ import { AddReviewPage } from "./pages/admin/AddReviewPage";
 import { AddSpicePage } from "./pages/admin/AddSpicePage";
 import { AdminHome } from "./pages/admin/AdminHome";
 import { AdminLayout } from "./pages/admin/AdminLayout";
+import { OffersPage } from "./pages/admin/OffersPage";
+import { OrdersPage } from "./pages/admin/OrdersPage";
+import { StockPage } from "./pages/admin/StockPage";
 import { PasswordPage } from "./pages/admin/PasswordPage";
 import { ReviewsPage } from "./pages/admin/ReviewsPage";
 import { ShopPage } from "./pages/admin/ShopPage";
 import { SpicesPage } from "./pages/admin/SpicesPage";
 import { Home } from "./pages/Home";
 import { SignIn } from "./pages/SignIn";
+import { Offers } from "./pages/Offers";
 import { Order } from "./pages/Order";
+import { OrderDesk } from "./pages/OrderDesk";
 import { Reviews } from "./pages/Reviews";
 import { Contact, PrivacyPolicy, RefundPolicy, ShippingPolicy, Terms } from "./pages/Legal";
 import { Track } from "./pages/Track";
 import { Shop } from "./pages/Shop";
 import { SpicePage } from "./pages/SpicePage";
+
+let lastHit = "";
+let lastHitAt = 0;
+
+function RecordHits() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (!pathname || pathname.startsWith("/admin") || pathname.startsWith("/desk") || pathname.startsWith("/sign-in")) return undefined;
+    const now = Date.now();
+    if (lastHit === pathname && now - lastHitAt < 1500) return undefined;
+    lastHit = pathname;
+    lastHitAt = now;
+    api("/api/hits", { method: "POST", body: JSON.stringify({ path: pathname }) }).catch(() => {});
+    return undefined;
+  }, [pathname]);
+
+  return null;
+}
 
 function ScrollToPlace() {
   const { pathname, hash, state } = useLocation();
@@ -40,6 +65,7 @@ function ScrollToPlace() {
 export default function App() {
   return (
     <BrowserRouter>
+      <RecordHits />
       <ScrollToPlace />
       <CatalogProvider>
         <CartProvider>
@@ -50,6 +76,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/shop" element={<Shop />} />
+                <Route path="/offers" element={<Offers />} />
                 <Route path="/spice/:id" element={<SpicePage />} />
                 <Route path="/order" element={<Order />} />
                 <Route path="/reviews" element={<Reviews />} />
@@ -60,9 +87,12 @@ export default function App() {
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/desk/:token" element={<OrderDesk />} />
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminHome />} />
-                  <Route path="orders" element={<Navigate to="/admin" replace />} />
+                  <Route path="orders" element={<OrdersPage />} />
+                  <Route path="stock" element={<StockPage />} />
+                  <Route path="offers" element={<OffersPage />} />
                   <Route path="spices" element={<SpicesPage />} />
                   <Route path="spices/new" element={<AddSpicePage />} />
                   <Route path="reviews" element={<ReviewsPage />} />

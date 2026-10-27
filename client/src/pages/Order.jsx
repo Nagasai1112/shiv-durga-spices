@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Form, Formik, useField, useFormikContext } from "formik";
 import { Link } from "react-router-dom";
 import * as Yup from "yup";
+import { api } from "../api";
 import { useCart } from "../cart";
 import { CrossButton } from "../components/CrossButton";
 import { useCatalog } from "../catalog";
-import { BRAND, deliveryFor, deliveryLine, orderGrams, rupees } from "../format";
+import { BRAND, activeOffer, confirmHref, deliveryFor, deliveryLine, discountFor, heldGrams, orderGrams, rupees } from "../format";
 
 function read(key) {
   return sessionStorage.getItem(key) || "";
@@ -104,14 +105,13 @@ function phoneDigits(value) {
   return digits.slice(0, 10);
 }
 
-function WhatsAppOrderLink({ number, message, onMissing }) {
+function WhatsAppOrderLink({ number, items, onMissing, onError }) {
   const { values, setErrors, setTouched } = useFormikContext();
-  const href = number
-    ? `https://wa.me/${number}?text=${encodeURIComponent(message(trimmedOrder(values)))}`
-    : "#";
+  const [busy, setBusy] = useState(false);
 
-  function onClick(event) {
+  async function onClick(event) {
     event.preventDefault();
+    if (busy) return;
     try {
       orderSchema.validateSync(values, { abortEarly: false });
     } catch (err) {
@@ -122,21 +122,41 @@ function WhatsAppOrderLink({ number, message, onMissing }) {
       onMissing();
       return;
     }
-    rememberOrder(values);
     const popup = window.open("about:blank", "_blank");
-    if (popup) popup.location.href = href;
-    else window.location.assign(href);
+    setBusy(true);
+    onError("");
+    try {
+      const saved = rememberOrder(values);
+      const data = await api("/api/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          ...saved,
+          items: items.map((item) => ({ productId: item.productId, grams: item.grams, qty: item.qty })),
+        }),
+      });
+      const confirmUrl = confirmHref(window.location.origin, data.confirmPath);
+      const text = data.message.replace("{{SHOP_CONFIRM_URL}}", confirmUrl);
+      const href = `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+      if (popup) popup.location.href = href;
+      else window.location.assign(href);
+    } catch (err) {
+      popup?.close();
+      onError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <a
-      href={href}
+      href={number ? `https://wa.me/${number}` : "#"}
       target="_blank"
       rel="noopener noreferrer"
       onClick={onClick}
-      className="mt-5 block w-full rounded-full bg-leaf px-4 py-3 text-center text-sm font-medium text-white"
+      aria-disabled={busy || undefined}
+      className="mt-5 block w-full rounded-full bg-leaf px-4 py-3 text-center text-sm font-medium text-white aria-disabled:opacity-60"
     >
-      Order on WhatsApp
+      {busy ? "Opening WhatsApp…" : "Order on WhatsApp"}
     </a>
   );
 }
@@ -166,8 +186,8 @@ function OrderField({ name, label, optional = false, as = "input", onValue, flag
 }
 
 export function Order() {
-  const { items, total, setQty, remove, clear } = useCart();
-  const { settings } = useCatalog();
+  const { items, total, notice, setQty, remove, clear } = useCart();
+  const { settings, offers, products } = useCatalog();
   const brand = settings?.brandName || BRAND;
   const [error, setError] = useState("");
 
@@ -175,41 +195,11 @@ export function Order() {
     document.title = `Order · ${brand}`;
   }, [brand]);
 
-  function message(values) {
-    const lines = items.map(
-      (item) => `- ${item.name}, ${item.label} × ${item.qty} — ${rupees(item.unitPrice)} each`,
-    );
-    return [
-      `Hello ${brand}, I would like to order:`,
-      "",
-      ...lines,
-      "",
-      `Spices: ${rupees(total)}`,
-      `Delivery: ${deliveryCharge ? rupees(deliveryCharge) : "Free"}`,
-      `Estimated total: ${rupees(grandTotal)}`,
-      "",
-      settings?.paymentNote || "Pay by UPI or cash. We confirm the payment with you on WhatsApp.",
-      settings?.deliveryNote || "",
-      "",
-      `Name: ${values.name}`,
-      `Phone: ${values.phone}`,
-      `Door number: ${values.door}`,
-      `City: ${values.city}`,
-      `Complete address: ${values.address}`,
-      `PIN: ${values.pin}`,
-      `District: ${values.district}`,
-      values.landmark ? `Landmark: ${values.landmark}` : "",
-      values.note ? `Note: ${values.note}` : "",
-      "",
-      "Please confirm the total, delivery, and payment.",
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  const whatsappNumber = settings?.whatsappNumber || "";
+  const whatsappNumber = settings?.whatsappNumber || settings?.phone || "";
   const deliveryCharge = deliveryFor(orderGrams(items), settings);
-  const grandTotal = total + deliveryCharge;
+  const offer = activeOffer(offers);
+  const discount = discountFor(total, offer);
+  const grandTotal = total - discount + deliveryCharge;
 
   if (items.length === 0) {
     return (
@@ -228,14 +218,19 @@ export function Order() {
       <section>
         <h1 className="font-serif text-5xl">Review the order</h1>
         <p className="mt-3 text-ink/75">
-          Spice prices are from when you added each pack. {deliveryLine(settings)} Tap Order on WhatsApp and press send. The shop sees the order in WhatsApp. After dispatch, the shop sends an India Post number on WhatsApp. Paste it on{" "}
+          Spice prices are from when you added each pack. {deliveryLine(settings)} Tap Order on WhatsApp and press send. The shop adds the order to its list only after you agree in that chat. After dispatch, the shop sends an India Post number on WhatsApp. Paste it on{" "}
           <Link to="/track" className="text-leaf underline decoration-leaf/30 underline-offset-4">
             Track
           </Link>{" "}
           to follow the parcel. {settings?.paymentNote}
         </p>
+        {notice && <p className="mt-4 rounded-2xl bg-[#f8efe9] px-4 py-3 text-sm text-maroon">{notice}</p>}
         <div className="mt-6 space-y-3">
-          {items.map((item) => (
+          {items.map((item) => {
+            const product = products.find((spice) => spice.id === item.productId);
+            const have = Number(product?.stockGrams);
+            const more = !Number.isFinite(have) || heldGrams(items, item.productId) + Number(item.grams) <= have;
+            return (
             <div key={item.key} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-card p-4">
               <div>
                 <p className="font-medium">{item.name}</p>
@@ -248,13 +243,15 @@ export function Order() {
                   −
                 </button>
                 <span>{item.qty}</span>
-                <button type="button" className="h-8 w-8 rounded-full border border-line" onClick={() => setQty(item.key, item.qty + 1)}>
+                <button type="button" disabled={!more} className="h-8 w-8 rounded-full border border-line disabled:opacity-40" onClick={() => setQty(item.key, item.qty + 1)}>
                   +
                 </button>
+                {!more && <span className="text-xs text-maroon">Sold out</span>}
                 <CrossButton label={`Remove ${item.name}`} tone="maroon" onClick={() => remove(item.key)} />
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
       <Formik
@@ -278,6 +275,14 @@ export function Order() {
               <span>Spices</span>
               <span>{rupees(total)}</span>
             </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-leaf">
+                <span>
+                  {offer.title} ({offer.percent}% off spices)
+                </span>
+                <span>-{rupees(discount)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span>Delivery</span>
               <span>{deliveryCharge ? rupees(deliveryCharge) : "Free"}</span>
@@ -330,8 +335,9 @@ export function Order() {
           {error && <p className="mt-3 text-sm text-maroon">{error}</p>}
           <WhatsAppOrderLink
             number={whatsappNumber}
-            message={message}
+            items={items}
             onMissing={() => setError("The shop WhatsApp number is not set yet. Add it from the admin page.")}
+            onError={setError}
           />
           <button type="button" onClick={clear} className="mt-3 w-full text-sm text-ink/60">
             Clear order
