@@ -17,7 +17,7 @@ Namecheap stays on BasicDNS. The host records are:
 
 Render verifies the names and issues the HTTPS certificate. The Render workspace stays on the free Hobby plan. The service instance is separate: a free instance sleeps after a quiet period, and a paid instance stays awake.
 
-Admin names, prices, photos, and the WhatsApp number stay across deploys only when the paid service has a persistent disk mounted at `/var/data` and the environment variable `DATA_DIR` is `/var/data`. The database and uploaded photos are both stored under that folder. Without it, a deploy starts again from the starter spices.
+Admin names, prices, photos, stock, and the WhatsApp number stay when a persistent disk is mounted at `/var/data`. Set `DATA_DIR` to `/var/data`, or leave it unset and the server uses that mount when it is present. A free Render instance has no disk. Its database and uploaded photos are wiped when the service sleeps or redeploys, and the shop starts again from the starter spices with no kilograms left, so every spice shows as sold out. To keep spices on a free instance, set `GITHUB_TOKEN` to a token that can write this repository. Each admin save is stored on the `live-data` branch and loaded again the next time the site starts.
 
 ## What a customer can do
 
@@ -119,7 +119,7 @@ The brand starts as **Shivdurga Kerala Spices**, the tagline as **Taste and trus
 ## How the project is put together
 
 - `client` is a React site built with Vite, React Router, and Tailwind.
-- `server` is Node and Express. It stores the shop in SQLite (`server/data/shop.db`) and product photos in `server/uploads`. On Render, set `DATA_DIR` to the persistent disk mount path and both folders are created there instead.
+- `server` is Node and Express. It stores the shop in SQLite (`server/data/shop.db`) and product photos in `server/uploads`. On Render, a disk mounted at `/var/data` keeps both. Without a disk, set `GITHUB_TOKEN` so spices, photos, descriptions, and stock are saved on the `live-data` branch and restored after the service sleeps.
 - In development, Vite serves the site on port 5173 and forwards `/api` and `/uploads` to the API on port 4000.
 - In production, `npm start` serves the built site and the API from the same Node process.
 

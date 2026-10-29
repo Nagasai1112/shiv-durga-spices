@@ -17,7 +17,9 @@ import {
   setPassword,
   getSettings,
   saveSettings,
+  storageIsDurable,
 } from "./db.js";
+import { publishCatalog, restoreCatalog, storageReport, temporaryStoreError } from "./catalog.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -84,6 +86,27 @@ function requireAdmin(req, res, next) {
     return;
   }
   next();
+}
+
+function storeBlocked(res) {
+  if (storageIsDurable() || process.env.GITHUB_TOKEN) return false;
+  res.status(503).json({ error: temporaryStoreError });
+  return true;
+}
+
+function reply(res, status, body) {
+  publishCatalog()
+    .then((saved) => {
+      if (res.headersSent) return;
+      if (!saved.ok) {
+        res.status(503).json({ error: saved.error });
+        return;
+      }
+      res.status(status).json(body);
+    })
+    .catch(() => {
+      if (!res.headersSent) res.status(503).json({ error: temporaryStoreError });
+    });
 }
 
 function slugify(name) {
@@ -200,7 +223,7 @@ function removeImage(url) {
 }
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, storage: storageReport() });
 });
 
 app.get("/api/settings", (req, res) => {
@@ -282,7 +305,8 @@ app.put("/api/admin/settings", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  res.json(saveSettings(parsed.value));
+  if (storeBlocked(res)) return;
+  reply(res, 200, saveSettings(parsed.value));
 });
 
 app.put("/api/admin/password", requireAdmin, (req, res) => {
@@ -308,6 +332,7 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
     return;
   }
   const { name, category, description, prices, costPerKg, inStock, bestSeller } = parsed.value;
+  if (storeBlocked(res)) return;
   const sort = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM products").get().n || 0) + 1;
   const id = uniqueId(name);
   const now = new Date().toISOString();
@@ -332,7 +357,7 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
     prices[1000],
     costPerKg,
   );
-  res.status(201).json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
+  reply(res, 201, toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(id)));
 });
 
 app.get("/api/admin/products", requireAdmin, (req, res) => {
@@ -352,6 +377,7 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     return;
   }
   const { name, category, description, prices, costPerKg, inStock, bestSeller } = parsed.value;
+  if (storeBlocked(res)) return;
   db.prepare(
     `UPDATE products SET
       name = ?, category = ?, description = ?, rate_per_kg = ?, in_stock = ?, best_seller = ?, updated_at = ?,
@@ -372,10 +398,11 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     costPerKg,
     req.params.id,
   );
-  res.json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
+  reply(res, 200, toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
 });
 
 app.post("/api/admin/products/:id/image", requireAdmin, (req, res) => {
+  if (storeBlocked(res)) return;
   upload.single("image")(req, res, (error) => {
     if (error) {
       const message = error.code === "LIMIT_FILE_SIZE" ? "Use an image under 5 MB" : error.message;
@@ -399,7 +426,7 @@ app.post("/api/admin/products/:id/image", requireAdmin, (req, res) => {
       new Date().toISOString(),
       req.params.id,
     );
-    res.json(toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
+    reply(res, 200, toProduct(db.prepare("SELECT * FROM products WHERE id = ?").get(req.params.id)));
   });
 });
 
@@ -429,12 +456,13 @@ app.post("/api/admin/reviews", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
+  if (storeBlocked(res)) return;
   const id = uniqueReviewId();
   const sort = (db.prepare("SELECT COALESCE(MAX(sort_order), 0) AS n FROM reviews").get().n || 0) + 1;
   db.prepare(
     "INSERT INTO reviews (id, quote, label, stars, image, sort_order, created_at) VALUES (?, ?, ?, ?, NULL, ?, ?)",
   ).run(id, parsed.value.quote, parsed.value.label, parsed.value.stars, sort, new Date().toISOString());
-  res.status(201).json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(id)));
+  reply(res, 201, toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(id)));
 });
 
 app.put("/api/admin/reviews/:id", requireAdmin, (req, res) => {
@@ -448,16 +476,18 @@ app.put("/api/admin/reviews/:id", requireAdmin, (req, res) => {
     res.status(400).json({ error: parsed.error });
     return;
   }
+  if (storeBlocked(res)) return;
   db.prepare("UPDATE reviews SET quote = ?, label = ?, stars = ? WHERE id = ?").run(
     parsed.value.quote,
     parsed.value.label,
     parsed.value.stars,
     req.params.id,
   );
-  res.json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
+  reply(res, 200, toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
 });
 
 app.post("/api/admin/reviews/:id/image", requireAdmin, (req, res) => {
+  if (storeBlocked(res)) return;
   upload.single("image")(req, res, (error) => {
     if (error) {
       const message = error.code === "LIMIT_FILE_SIZE" ? "Use an image under 5 MB" : error.message;
@@ -477,7 +507,7 @@ app.post("/api/admin/reviews/:id/image", requireAdmin, (req, res) => {
     if (current.image && current.image.startsWith("/uploads/")) removeImage(current.image);
     const image = `/uploads/${req.file.filename}`;
     db.prepare("UPDATE reviews SET image = ? WHERE id = ?").run(image, req.params.id);
-    res.json(toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
+    reply(res, 200, toReview(db.prepare("SELECT * FROM reviews WHERE id = ?").get(req.params.id)));
   });
 });
 
@@ -487,9 +517,10 @@ app.delete("/api/admin/reviews/:id", requireAdmin, (req, res) => {
     res.status(404).json({ error: "That review is not on the site." });
     return;
   }
+  if (storeBlocked(res)) return;
   if (current.image && current.image.startsWith("/uploads/")) removeImage(current.image);
   db.prepare("DELETE FROM reviews WHERE id = ?").run(req.params.id);
-  res.json({ ok: true });
+  reply(res, 200, { ok: true });
 });
 
 function rupees(amount) {
@@ -942,6 +973,7 @@ app.post("/api/admin/orders/delete", requireAdmin, (req, res) => {
     res.status(400).json({ error: "Choose an order to remove" });
     return;
   }
+  if (storeBlocked(res)) return;
   const find = db.prepare("SELECT * FROM orders WHERE id = ? AND status = 'confirmed'");
   const remove = db.prepare("DELETE FROM orders WHERE id = ? AND status = 'confirmed'");
   let removed = 0;
@@ -958,7 +990,7 @@ app.post("/api/admin/orders/delete", requireAdmin, (req, res) => {
     db.exec("ROLLBACK");
     throw err;
   }
-  res.json({ removed });
+  reply(res, 200, { removed });
 });
 
 app.get("/api/offers", (req, res) => {
@@ -981,12 +1013,13 @@ app.post("/api/admin/offers", requireAdmin, (req, res) => {
     return;
   }
   const offer = parsed.value;
+  if (storeBlocked(res)) return;
   const id = `offer-${randomBytes(8).toString("hex")}`;
   db.prepare(
     "INSERT INTO offers (id, title, note, percent, starts_on, ends_on, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
   ).run(id, offer.title, offer.note, offer.percent, offer.startsOn, offer.endsOn, new Date().toISOString());
   const saved = db.prepare("SELECT * FROM offers WHERE id = ?").get(id);
-  res.status(201).json(toOffer(saved));
+  reply(res, 201, toOffer(saved));
 });
 
 app.put("/api/admin/offers/:id", requireAdmin, (req, res) => {
@@ -1001,6 +1034,7 @@ app.put("/api/admin/offers/:id", requireAdmin, (req, res) => {
     return;
   }
   const offer = parsed.value;
+  if (storeBlocked(res)) return;
   db.prepare("UPDATE offers SET title = ?, note = ?, percent = ?, starts_on = ?, ends_on = ? WHERE id = ?").run(
     offer.title,
     offer.note,
@@ -1009,7 +1043,7 @@ app.put("/api/admin/offers/:id", requireAdmin, (req, res) => {
     offer.endsOn,
     current.id,
   );
-  res.json(toOffer(db.prepare("SELECT * FROM offers WHERE id = ?").get(current.id)));
+  reply(res, 200, toOffer(db.prepare("SELECT * FROM offers WHERE id = ?").get(current.id)));
 });
 
 app.delete("/api/admin/offers/:id", requireAdmin, (req, res) => {
@@ -1018,8 +1052,9 @@ app.delete("/api/admin/offers/:id", requireAdmin, (req, res) => {
     res.status(404).json({ error: "That offer is not on the site." });
     return;
   }
+  if (storeBlocked(res)) return;
   db.prepare("DELETE FROM offers WHERE id = ?").run(current.id);
-  res.json({ ok: true });
+  reply(res, 200, { ok: true });
 });
 
 app.get("/api/admin/menu", requireAdmin, (_req, res) => {
@@ -1028,6 +1063,7 @@ app.get("/api/admin/menu", requireAdmin, (_req, res) => {
     .all()
     .map((row) => row.name);
   res.json({
+    storage: storageReport(),
     outOfStock,
     items: [
       { to: "/admin", label: "Home", end: true },
@@ -1049,6 +1085,7 @@ app.get("/api/admin/stock", requireAdmin, (req, res) => {
 });
 
 app.put("/api/admin/stock", requireAdmin, (req, res) => {
+  if (storeBlocked(res)) return;
   const items = Array.isArray(req.body?.items) ? req.body.items : [];
   const update = db.prepare("UPDATE products SET stock_grams = ? WHERE id = ?");
   for (const item of items) {
@@ -1057,7 +1094,7 @@ app.put("/api/admin/stock", requireAdmin, (req, res) => {
     if (!id || !Number.isFinite(kg) || kg < 0 || kg > 100000) continue;
     update.run(Math.round(kg * 1000), id);
   }
-  res.json(stockReport(req.body?.year));
+  reply(res, 200, stockReport(req.body?.year));
 });
 
 app.post("/api/hits", (req, res) => {
@@ -1090,13 +1127,14 @@ app.post("/api/admin/orders/by-token/:token/confirm", requireAdmin, (req, res) =
     res.status(404).json({ error: "This confirmation link is not valid." });
     return;
   }
+  if (storeBlocked(res)) return;
   if (row.status !== "confirmed") {
     stampItemCosts(row);
     changeStock(row, -1);
     db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ?, stock_counted = 1 WHERE id = ?").run(new Date().toISOString(), row.id);
   }
   const saved = db.prepare("SELECT * FROM orders WHERE id = ?").get(row.id);
-  res.json({ order: toOrder(saved), already: row.status === "confirmed" });
+  reply(res, 200, { order: toOrder(saved), already: row.status === "confirmed" });
 });
 
 app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
@@ -1105,9 +1143,10 @@ app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
     res.status(404).json({ error: "That spice is not in the shop" });
     return;
   }
+  if (storeBlocked(res)) return;
   removeImage(current.image);
   db.prepare("DELETE FROM products WHERE id = ?").run(req.params.id);
-  res.json({ ok: true });
+  reply(res, 200, { ok: true });
 });
 
 const dist = path.join(__dirname, "..", "client", "dist");
@@ -1129,6 +1168,11 @@ app.use((error, req, res, next) => {
   }
   res.status(500).json({ error: "Something went wrong on the shop server" });
 });
+
+const restored = await restoreCatalog();
+const storage = storageReport();
+if (restored.restored) console.log(`Restored shop catalog saved at ${restored.savedAt}`);
+if (storage.where === "temporary") console.error(temporaryStoreError);
 
 app.listen(port, () => {
   console.log(`Shivdurga Kerala Spices server  http://localhost:${port}`);

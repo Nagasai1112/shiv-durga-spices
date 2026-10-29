@@ -6,6 +6,7 @@ export function AdminLayout() {
   const [authed, setAuthed] = useState(null);
   const [items, setItems] = useState([]);
   const [outOfStock, setOutOfStock] = useState([]);
+  const [storage, setStorage] = useState(null);
   const [menuError, setMenuError] = useState("");
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -15,6 +16,7 @@ export function AdminLayout() {
       .then((menu) => {
         setItems(Array.isArray(menu.items) ? menu.items : []);
         setOutOfStock(Array.isArray(menu.outOfStock) ? menu.outOfStock : []);
+        setStorage(menu.storage || null);
       })
       .catch((err) => setMenuError(err.message));
   }
@@ -90,6 +92,14 @@ export function AdminLayout() {
         </nav>
       </aside>
       <div className="min-w-0 flex-1">
+        {storage?.where === "temporary" && (
+          <div className="mb-4 rounded-[2rem] border border-maroon/30 bg-[#f8efe9] px-5 py-4">
+            <p className="font-medium text-maroon">Saves do not last on this host</p>
+            <p className="mt-1 text-sm text-ink/80">
+              Names, photos, descriptions, and stock are wiped when the live site sleeps. Mount a disk at /var/data and set DATA_DIR to /var/data, or set GITHUB_TOKEN, then add the spice and the kilograms again.
+            </p>
+          </div>
+        )}
         {outOfStock.length > 0 && pathname !== "/admin/stock" && (
           <div className="mb-4 rounded-[2rem] border border-maroon/30 bg-[#f8efe9] px-5 py-4">
             <p className="font-medium text-maroon">Out of stock</p>

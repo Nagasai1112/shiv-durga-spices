@@ -8,7 +8,42 @@ import dotenv from "dotenv";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
-const dataRoot = process.env.DATA_DIR || __dirname;
+function diskMounted(candidate) {
+  try {
+    const mounts = fs.readFileSync("/proc/mounts", "utf8");
+    return mounts.split("\n").some((line) => {
+      const point = line.split(" ")[1]?.replaceAll("\\040", " ");
+      return point === candidate;
+    });
+  } catch {
+    return false;
+  }
+}
+
+function resolveDataRoot() {
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (diskMounted("/var/data")) return "/var/data";
+  return __dirname;
+}
+
+const dataRoot = resolveDataRoot();
+
+export function storageIsDurable() {
+  if (!process.env.RENDER) return true;
+  const root = path.resolve(dataRoot);
+  try {
+    const mounts = fs.readFileSync("/proc/mounts", "utf8").trim().split("\n");
+    for (const line of mounts) {
+      const point = line.split(" ")[1]?.replaceAll("\\040", " ");
+      if (!point || point === "/") continue;
+      const mount = point.length > 1 && point.endsWith("/") ? point.slice(0, -1) : point;
+      if (root === mount || root.startsWith(`${mount}/`)) return true;
+    }
+  } catch {
+    return Boolean(process.env.DATA_DIR);
+  }
+  return false;
+}
 const dataDir = path.join(dataRoot, "data");
 export const uploadsDir = path.join(dataRoot, "uploads");
 fs.mkdirSync(dataDir, { recursive: true });
@@ -215,8 +250,6 @@ const bundledPhotos = {
   "bay-leaf": "/spices/bay-leaf.jpg",
 };
 
-const obsoleteIds = ["kashmiri-chilli", "turmeric", "coriander", "garam-masala", "cumin", "mustard"];
-
 function savedPhoto(imageById, id) {
   for (const previousId of previousPhotoIds[id] || []) {
     const image = imageById.get(previousId);
@@ -262,20 +295,13 @@ db.prepare(
   WHERE price_100 = 0 AND price_250 = 0 AND price_500 = 0 AND price_1000 = 0 AND rate_per_kg > 0`,
 ).run();
 
-const catalogVersion = db.prepare("SELECT value FROM settings WHERE key = 'catalog_version'").get()?.value;
+export let freshStarter = false;
 const productCount = db.prepare("SELECT COUNT(*) AS n FROM products").get().n;
-const obsoleteCount = db
-  .prepare(`SELECT COUNT(*) AS n FROM products WHERE id IN (${obsoleteIds.map(() => "?").join(", ")})`)
-  .get(...obsoleteIds).n;
-
-if (catalogVersion !== "2" && (productCount === 0 || obsoleteCount > 0)) {
-  const imageById = new Map(db.prepare("SELECT id, image FROM products").all().map((row) => [row.id, row.image]));
-  db.prepare("DELETE FROM products").run();
-  insertDefaultSpices(imageById);
-  db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
-} else if (catalogVersion !== "2") {
-  db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '2') ON CONFLICT(key) DO UPDATE SET value = '2'").run();
+if (productCount === 0) {
+  insertDefaultSpices();
+  freshStarter = true;
 }
+db.prepare("INSERT INTO settings (key, value) VALUES ('catalog_version', '3') ON CONFLICT(key) DO UPDATE SET value = '3'").run();
 
 const renameStarter = db.prepare("UPDATE products SET name = ? WHERE id = ? AND name = ?");
 renameStarter.run("Green Cardamom", "cardamom", "Cardamom");
